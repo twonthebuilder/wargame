@@ -6,18 +6,23 @@
 import { RebelSystem } from './rebelSystem.js';
 import { initImperialMandates } from './mandates/imperialMandates.js';
 import { resolveEnemyLevel } from './utils/resolveEnemyLevel.js';
-import { OVERWORLD_RESTORE_WEIGHTS, OVERWORLD_TILES, rollWeightedTerrainType } from './overworldConfig.js';
 import {
-    DEFAULT_ULTIMATE_LEVELS,
-    getUltimateChargeDelayMs,
-    getUltimateDurationMs,
-    resolveUltimateLevelValue,
-    ULTIMATE_CONFIG
+  OVERWORLD_RESTORE_WEIGHTS,
+  OVERWORLD_TILES,
+  rollWeightedTerrainType,
+} from './overworldConfig.js';
+import {
+  DEFAULT_ULTIMATE_LEVELS,
+  getUltimateChargeDelayMs,
+  getUltimateDurationMs,
+  resolveUltimateLevelValue,
+  ULTIMATE_CONFIG,
 } from './game/ultimatesConfig.js';
 
-const GLOBAL_HEX = (typeof window !== 'undefined' && window.Hex)
-    || (typeof global !== 'undefined' && global.Hex)
-    || null;
+const GLOBAL_HEX =
+  (typeof window !== 'undefined' && window.Hex) ||
+  (typeof global !== 'undefined' && global.Hex) ||
+  null;
 
 /**
  * Resolve the imperial mandates API at call time so both browser globals and
@@ -25,12 +30,13 @@ const GLOBAL_HEX = (typeof window !== 'undefined' && window.Hex)
  * @returns {object} mandates API or module export.
  */
 function resolveImperialMandates() {
-    if (typeof window !== 'undefined' && window.ImperialMandates) return window.ImperialMandates;
-    if (typeof globalThis !== 'undefined' && globalThis.ImperialMandates) return globalThis.ImperialMandates;
-    if (typeof initImperialMandates === 'function') {
-        return initImperialMandates(globalThis);
-    }
-    return {};
+  if (typeof window !== 'undefined' && window.ImperialMandates) return window.ImperialMandates;
+  if (typeof globalThis !== 'undefined' && globalThis.ImperialMandates)
+    return globalThis.ImperialMandates;
+  if (typeof initImperialMandates === 'function') {
+    return initImperialMandates(globalThis);
+  }
+  return {};
 }
 
 /** Percentage of wartime gold the crown siphons as a royal levy. */
@@ -50,43 +56,44 @@ const DEATH_SFX_CHANCE = { normal: 0.35, rare: 0.6 };
  * @param {object} game current game object.
  */
 function updateUltimateChargeState(game) {
-    const ultimates = game?.combat?.ultimates;
-    if (!ultimates) return;
-    const warElapsedMs = Math.max(0, game.combat.warElapsedMs || 0);
-    const levelOverrides = ultimates.levels && typeof ultimates.levels === 'object' ? ultimates.levels : {};
-    const levels = { ...DEFAULT_ULTIMATE_LEVELS, ...levelOverrides };
+  const ultimates = game?.combat?.ultimates;
+  if (!ultimates) return;
+  const warElapsedMs = Math.max(0, game.combat.warElapsedMs || 0);
+  const levelOverrides =
+    ultimates.levels && typeof ultimates.levels === 'object' ? ultimates.levels : {};
+  const levels = { ...DEFAULT_ULTIMATE_LEVELS, ...levelOverrides };
 
-    Object.keys(ULTIMATE_CONFIG).forEach((ultimateId) => {
-        const level = Number(levels[ultimateId] ?? 1);
-        const chargeDelayMs = getUltimateChargeDelayMs(ultimateId, level);
-        const readyAtMs = ultimates.readyAtMs || {};
-        const chargeMs = ultimates.chargeMs || {};
-        const consumed = ultimates.consumed || {};
-        const activeEffects = ultimates.activeEffects || {};
+  Object.keys(ULTIMATE_CONFIG).forEach((ultimateId) => {
+    const level = Number(levels[ultimateId] ?? 1);
+    const chargeDelayMs = getUltimateChargeDelayMs(ultimateId, level);
+    const readyAtMs = ultimates.readyAtMs || {};
+    const chargeMs = ultimates.chargeMs || {};
+    const consumed = ultimates.consumed || {};
+    const activeEffects = ultimates.activeEffects || {};
 
-        readyAtMs[ultimateId] = chargeDelayMs;
-        chargeMs[ultimateId] = consumed[ultimateId]
-            ? chargeDelayMs
-            : Math.min(warElapsedMs, chargeDelayMs);
+    readyAtMs[ultimateId] = chargeDelayMs;
+    chargeMs[ultimateId] = consumed[ultimateId]
+      ? chargeDelayMs
+      : Math.min(warElapsedMs, chargeDelayMs);
 
-        const activeEffect = activeEffects[ultimateId];
-        if (activeEffect?.expiresAtMs && warElapsedMs >= activeEffect.expiresAtMs) {
-            activeEffects[ultimateId] = null;
-            consumed[ultimateId] = true;
-            const metadata = ultimates.metadata || {};
-            metadata[ultimateId] = {
-                ...(metadata[ultimateId] || {}),
-                lastAppliedAtMs: activeEffect.expiresAtMs ?? warElapsedMs
-            };
-            ultimates.metadata = metadata;
-        }
+    const activeEffect = activeEffects[ultimateId];
+    if (activeEffect?.expiresAtMs && warElapsedMs >= activeEffect.expiresAtMs) {
+      activeEffects[ultimateId] = null;
+      consumed[ultimateId] = true;
+      const metadata = ultimates.metadata || {};
+      metadata[ultimateId] = {
+        ...(metadata[ultimateId] || {}),
+        lastAppliedAtMs: activeEffect.expiresAtMs ?? warElapsedMs,
+      };
+      ultimates.metadata = metadata;
+    }
 
-        ultimates.readyAtMs = readyAtMs;
-        ultimates.chargeMs = chargeMs;
-        ultimates.consumed = consumed;
-        ultimates.activeEffects = activeEffects;
-        ultimates.levels = levels;
-    });
+    ultimates.readyAtMs = readyAtMs;
+    ultimates.chargeMs = chargeMs;
+    ultimates.consumed = consumed;
+    ultimates.activeEffects = activeEffects;
+    ultimates.levels = levels;
+  });
 }
 
 /**
@@ -95,47 +102,47 @@ function updateUltimateChargeState(game) {
  * @param {object} game current game object.
  */
 function applyGoldUltimateEffect(game) {
-    const ultimates = game?.combat?.ultimates;
-    const goldEffect = ultimates?.activeEffects?.gold;
-    if (!ultimates || !goldEffect || ultimates.consumed?.gold) return;
+  const ultimates = game?.combat?.ultimates;
+  const goldEffect = ultimates?.activeEffects?.gold;
+  if (!ultimates || !goldEffect || ultimates.consumed?.gold) return;
 
-    const warElapsedMs = Math.max(0, game.combat.warElapsedMs || 0);
-    const level = Number(ultimates.levels?.gold ?? DEFAULT_ULTIMATE_LEVELS.gold);
-    const chargeDelayMs = getUltimateChargeDelayMs('gold', level);
-    if (warElapsedMs < chargeDelayMs) return;
+  const warElapsedMs = Math.max(0, game.combat.warElapsedMs || 0);
+  const level = Number(ultimates.levels?.gold ?? DEFAULT_ULTIMATE_LEVELS.gold);
+  const chargeDelayMs = getUltimateChargeDelayMs('gold', level);
+  if (warElapsedMs < chargeDelayMs) return;
 
-    const percent = resolveUltimateLevelValue(ULTIMATE_CONFIG.gold.unitCullPercent, level);
-    const goldPerUnit = resolveUltimateLevelValue(ULTIMATE_CONFIG.gold.goldPerUnit, level);
-    const units = game.combat.units || [];
-    let remainingCull = Math.floor(units.filter((u) => u.owner === 'player').length * percent);
-    let culled = 0;
+  const percent = resolveUltimateLevelValue(ULTIMATE_CONFIG.gold.unitCullPercent, level);
+  const goldPerUnit = resolveUltimateLevelValue(ULTIMATE_CONFIG.gold.goldPerUnit, level);
+  const units = game.combat.units || [];
+  let remainingCull = Math.floor(units.filter((u) => u.owner === 'player').length * percent);
+  let culled = 0;
 
-    for (let i = units.length - 1; i >= 0 && remainingCull > 0; i -= 1) {
-        if (units[i].owner === 'player') {
-            units.splice(i, 1);
-            remainingCull -= 1;
-            culled += 1;
-        }
+  for (let i = units.length - 1; i >= 0 && remainingCull > 0; i -= 1) {
+    if (units[i].owner === 'player') {
+      units.splice(i, 1);
+      remainingCull -= 1;
+      culled += 1;
     }
+  }
 
-    const goldGain = Math.max(0, culled * goldPerUnit);
-    if (goldGain > 0) {
-        game.gold = Math.max(0, Math.floor(game.gold || 0)) + goldGain;
-        if (typeof game.spawnTxt === 'function') {
-            game.spawnTxt(new (resolveHex(game))(0, 0), `+${goldGain}g`, '#ffd166');
-        }
+  const goldGain = Math.max(0, culled * goldPerUnit);
+  if (goldGain > 0) {
+    game.gold = Math.max(0, Math.floor(game.gold || 0)) + goldGain;
+    if (typeof game.spawnTxt === 'function') {
+      game.spawnTxt(new (resolveHex(game))(0, 0), `+${goldGain}g`, '#ffd166');
     }
+  }
 
-    ultimates.consumed = { ...(ultimates.consumed || {}), gold: true };
-    ultimates.activeEffects = { ...(ultimates.activeEffects || {}), gold: null };
-    ultimates.metadata = {
-        ...(ultimates.metadata || {}),
-        gold: {
-            ...(ultimates.metadata?.gold || {}),
-            activatedAtMs: goldEffect.activatedAtMs ?? warElapsedMs,
-            lastAppliedAtMs: warElapsedMs
-        }
-    };
+  ultimates.consumed = { ...(ultimates.consumed || {}), gold: true };
+  ultimates.activeEffects = { ...(ultimates.activeEffects || {}), gold: null };
+  ultimates.metadata = {
+    ...(ultimates.metadata || {}),
+    gold: {
+      ...(ultimates.metadata?.gold || {}),
+      activatedAtMs: goldEffect.activatedAtMs ?? warElapsedMs,
+      lastAppliedAtMs: warElapsedMs,
+    },
+  };
 }
 
 /**
@@ -146,11 +153,11 @@ function applyGoldUltimateEffect(game) {
  * @returns {number} reward multiplier in the [0, 1] range.
  */
 export function computeWarRewardMultiplier(elapsedMs, capSeconds = WAR_REWARD_DECAY_SECONDS) {
-    const safeElapsedMs = Math.max(0, Number(elapsedMs) || 0);
-    const safeCapSeconds = Math.max(1, Number(capSeconds) || 1);
-    const capMs = safeCapSeconds * 1000;
-    const ratio = Math.min(1, safeElapsedMs / capMs);
-    return Math.max(0, 1 - ratio);
+  const safeElapsedMs = Math.max(0, Number(elapsedMs) || 0);
+  const safeCapSeconds = Math.max(1, Number(capSeconds) || 1);
+  const capMs = safeCapSeconds * 1000;
+  const ratio = Math.min(1, safeElapsedMs / capMs);
+  return Math.max(0, 1 - ratio);
 }
 
 /**
@@ -162,9 +169,9 @@ export function computeWarRewardMultiplier(elapsedMs, capSeconds = WAR_REWARD_DE
  * @throws {Error} when no Hex implementation can be found.
  */
 function resolveHex(game, hexImpl) {
-    const impl = hexImpl || game?.Hex || GLOBAL_HEX;
-    if (!impl) throw new Error('Combat engine requires a Hex implementation');
-    return impl;
+  const impl = hexImpl || game?.Hex || GLOBAL_HEX;
+  if (!impl) throw new Error('Combat engine requires a Hex implementation');
+  return impl;
 }
 
 /**
@@ -175,29 +182,38 @@ function resolveHex(game, hexImpl) {
  * @returns {{ net: number, tax: number }} net gold after tax and the tax amount.
  */
 function applyRoyalWarTax(goldDelta) {
-    const gross = Math.max(0, Math.floor(goldDelta || 0));
-    const tax = Math.floor(gross * WAR_TAX_RATE);
-    return { net: gross - tax, tax };
+  const gross = Math.max(0, Math.floor(goldDelta || 0));
+  const tax = Math.floor(gross * WAR_TAX_RATE);
+  return { net: gross - tax, tax };
 }
 
 /** Definitions for buildable structures in combat mode. */
 export const COMBAT_BUILDINGS = {
-    // Castle now has income:5 and prodRate:4.0
-    CASTLE: { id: 'castle', char: '🏰', hp: 3000, dmg: 50, range: 4, rate: 1.0, income: 5, prodRate: 4.0 },
-    MINE:   { id: 'mine',   char: '🟡', cost: 40, hp: 300, income: 8, rate: 3.0 },
-    BARRACKS:{ id: 'barracks', char: '⚔️', cost: 75, hp: 500, spawn: 'soldier', rate: 5.0 },
-    RANGE:  { id: 'range',  char: '🏹', cost: 100, hp: 250, spawn: 'archer', rate: 4.5 },
-    TOWER:  { id: 'tower',  char: '🛡️', cost: 120, hp: 1000, dmg: 40, range: 4, rate: 0.8 },
-    LAIR:   { id: 'lair',   char: '🌋', cost: 0, hp: 1500, spawn: 'dragon', rate: 12.0 },
-    MYSTERY:{ id: 'mystery', char: '❓', cost: 25 },
-    ROCKS:  { id: 'rocks', char: '🪨', hp: 150 }
+  // Castle now has income:5 and prodRate:4.0
+  CASTLE: {
+    id: 'castle',
+    char: '🏰',
+    hp: 3000,
+    dmg: 50,
+    range: 4,
+    rate: 1.0,
+    income: 5,
+    prodRate: 4.0,
+  },
+  MINE: { id: 'mine', char: '🟡', cost: 40, hp: 300, income: 8, rate: 3.0 },
+  BARRACKS: { id: 'barracks', char: '⚔️', cost: 75, hp: 500, spawn: 'soldier', rate: 5.0 },
+  RANGE: { id: 'range', char: '🏹', cost: 100, hp: 250, spawn: 'archer', rate: 4.5 },
+  TOWER: { id: 'tower', char: '🛡️', cost: 120, hp: 1000, dmg: 40, range: 4, rate: 0.8 },
+  LAIR: { id: 'lair', char: '🌋', cost: 0, hp: 1500, spawn: 'dragon', rate: 12.0 },
+  MYSTERY: { id: 'mystery', char: '❓', cost: 25 },
+  ROCKS: { id: 'rocks', char: '🪨', hp: 150 },
 };
 
 /** Base unit stats before upgrades are applied. */
 export const UNITS = {
-    soldier: { hp: 150, dmg: 12, speed: 2.0, range: 0, char: '⚔️' },
-    archer:  { hp: 70,  dmg: 18, speed: 1.8, range: 3, char: '🏹' },
-    dragon:  { hp: 1200, dmg: 80, speed: 1.5, range: 2, char: '🐲' }
+  soldier: { hp: 150, dmg: 12, speed: 2.0, range: 0, char: '⚔️' },
+  archer: { hp: 70, dmg: 18, speed: 1.8, range: 3, char: '🏹' },
+  dragon: { hp: 1200, dmg: 80, speed: 1.5, range: 2, char: '🐲' },
 };
 
 /**
@@ -207,14 +223,15 @@ export const UNITS = {
  * @param {object} game current game object (enemy level may influence future fees).
  * @returns {number} gold required to initiate battle.
  */
-export function computeWarEntryFee(game) { // eslint-disable-line no-unused-vars
-    const enemyLevel = resolveEnemyLevel(game);
-    const month = Math.max(1, game?.timekeeper?.getCalendar?.().month || 1);
-    const halfMonthPressure = Math.floor((month - 1) / 2); // +1 fee every two weeks of campaign time
-    const yearPressure = Math.floor((month - 1) / 12) * 5; // bump when looping the calendar
-    const base = 10;
-    const fee = base + (enemyLevel * 12) + halfMonthPressure * 3 + yearPressure;
-    return Math.max(0, Math.floor(fee));
+export function computeWarEntryFee(game) {
+  // eslint-disable-line no-unused-vars
+  const enemyLevel = resolveEnemyLevel(game);
+  const month = Math.max(1, game?.timekeeper?.getCalendar?.().month || 1);
+  const halfMonthPressure = Math.floor((month - 1) / 2); // +1 fee every two weeks of campaign time
+  const yearPressure = Math.floor((month - 1) / 12) * 5; // bump when looping the calendar
+  const base = 10;
+  const fee = base + enemyLevel * 12 + halfMonthPressure * 3 + yearPressure;
+  return Math.max(0, Math.floor(fee));
 }
 
 /**
@@ -224,12 +241,12 @@ export function computeWarEntryFee(game) { // eslint-disable-line no-unused-vars
  * @returns {{ gold: number, nextMove: number }} derived starting gold pool and initial decision cadence.
  */
 export function deriveAIPrep(game) {
-    const cal = game?.timekeeper?.getCalendar?.();
-    const monthPressure = Math.floor(((cal?.month || 1) - 1) / 2);
-    const enemyLevel = resolveEnemyLevel(game);
-    const gold = 320 + (Math.max(1, enemyLevel) * 140) + (monthPressure * 25);
-    const nextMove = Math.max(1.6, 2.6 - Math.min(1.0, enemyLevel * 0.08));
-    return { gold, nextMove };
+  const cal = game?.timekeeper?.getCalendar?.();
+  const monthPressure = Math.floor(((cal?.month || 1) - 1) / 2);
+  const enemyLevel = resolveEnemyLevel(game);
+  const gold = 320 + Math.max(1, enemyLevel) * 140 + monthPressure * 25;
+  const nextMove = Math.max(1.6, 2.6 - Math.min(1.0, enemyLevel * 0.08));
+  return { gold, nextMove };
 }
 
 /**
@@ -239,14 +256,14 @@ export function deriveAIPrep(game) {
  * @returns {object} derived stat block.
  */
 export function getUnitStats(game, type) {
-    const base = UNITS[type];
-    if(!base) return { hp: 100, dmg: 10, speed: 1, range: 1 };
-    if (type === 'soldier' || type === 'archer') {
-        const level = Number(game.upgrades?.[type] ?? 1);
-        const multi = 1 + ((level - 1) * 0.2);
-        return { ...base, hp: base.hp * multi, dmg: base.dmg * multi };
-    }
-    return base;
+  const base = UNITS[type];
+  if (!base) return { hp: 100, dmg: 10, speed: 1, range: 1 };
+  if (type === 'soldier' || type === 'archer') {
+    const level = Number(game.upgrades?.[type] ?? 1);
+    const multi = 1 + (level - 1) * 0.2;
+    return { ...base, hp: base.hp * multi, dmg: base.dmg * multi };
+  }
+  return base;
 }
 
 /**
@@ -258,20 +275,20 @@ export function getUnitStats(game, type) {
  * @throws {Error} when the building type is unknown.
  */
 export function getBuildingStats(game, type, owner) {
-    const safeType = typeof type === 'string' ? type : '';
-    const def = COMBAT_BUILDINGS[safeType.toUpperCase()];
-    if (!def) {
-        const error = new Error(`Unknown combat building type "${type}"`);
-        error.code = 'COMBAT_BUILDING_UNKNOWN';
-        throw error;
-    }
-    if(owner !== 'player') return def;
-    if(type === 'tower' || type === 'castle') {
-        const level = Number(game.upgrades?.defense ?? 1);
-        const multi = 1 + ((level - 1) * 0.25);
-        return { ...def, hp: def.hp * multi, dmg: def.dmg * multi };
-    }
-    return def;
+  const safeType = typeof type === 'string' ? type : '';
+  const def = COMBAT_BUILDINGS[safeType.toUpperCase()];
+  if (!def) {
+    const error = new Error(`Unknown combat building type "${type}"`);
+    error.code = 'COMBAT_BUILDING_UNKNOWN';
+    throw error;
+  }
+  if (owner !== 'player') return def;
+  if (type === 'tower' || type === 'castle') {
+    const level = Number(game.upgrades?.defense ?? 1);
+    const multi = 1 + (level - 1) * 0.25;
+    return { ...def, hp: def.hp * multi, dmg: def.dmg * multi };
+  }
+  return def;
 }
 
 /**
@@ -281,9 +298,9 @@ export function getBuildingStats(game, type, owner) {
  * @returns {number} adjusted spawn rate.
  */
 export function getSpawnRate(game, baseRate) {
-    const level = Number(game.upgrades?.production ?? 1);
-    const multi = Math.pow(0.9, level - 1);
-    return baseRate * multi;
+  const level = Number(game.upgrades?.production ?? 1);
+  const multi = Math.pow(0.9, level - 1);
+  return baseRate * multi;
 }
 
 /**
@@ -293,181 +310,202 @@ export function getSpawnRate(game, baseRate) {
  * @param {object} [hexImpl] optional Hex implementation for spatial math.
  */
 export function updateCombat(game, dt, hexImpl) {
-    const safeDt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
-    if (!game.combat.warStartMs) game.combat.warStartMs = Date.now();
-    game.combat.warElapsedMs = Math.max(0, (game.combat.warElapsedMs || 0) + (safeDt * 1000));
-    updateUltimateChargeState(game);
-    applyGoldUltimateEffect(game);
-    const rewardMultiplier = computeWarRewardMultiplier(game.combat.warElapsedMs);
-    const Hex = resolveHex(game, hexImpl);
-    const activeUltimates = game.combat.ultimates?.activeEffects || {};
-    const ultimateLevelOverrides = game.combat.ultimates?.levels
-        && typeof game.combat.ultimates.levels === 'object'
-        ? game.combat.ultimates.levels
-        : {};
-    const ultimateLevels = {
-        ...DEFAULT_ULTIMATE_LEVELS,
-        ...ultimateLevelOverrides
-    };
-    const rushLevel = Number(ultimateLevels.rush ?? DEFAULT_ULTIMATE_LEVELS.rush);
-    const manpowerLevel = Number(ultimateLevels.manpower ?? DEFAULT_ULTIMATE_LEVELS.manpower);
-    const rushSpeedMultiplier = activeUltimates.rush
-        ? (activeUltimates.rush.speedMultiplier
-            ?? resolveUltimateLevelValue(ULTIMATE_CONFIG.rush.speedMultiplier, rushLevel))
-        : 1;
-    const manpowerSpawnRateMultiplier = activeUltimates.manpower
-        ? (activeUltimates.manpower.spawnRateMultiplier
-            ?? resolveUltimateLevelValue(ULTIMATE_CONFIG.manpower.spawnRateMultiplier, manpowerLevel))
-        : 1;
-    const manpowerDoubleSpawnChance = activeUltimates.manpower
-        ? (activeUltimates.manpower.doubleSpawnChance
-            ?? resolveUltimateLevelValue(ULTIMATE_CONFIG.manpower.doubleSpawnChance, manpowerLevel))
-        : 0;
-    if (activeUltimates.rush && !activeUltimates.rush.expiresAtMs) {
-        activeUltimates.rush.expiresAtMs = game.combat.warElapsedMs
-            + getUltimateDurationMs('rush', rushLevel);
-    }
-    if (activeUltimates.manpower && !activeUltimates.manpower.expiresAtMs) {
-        activeUltimates.manpower.expiresAtMs = game.combat.warElapsedMs
-            + getUltimateDurationMs('manpower', manpowerLevel);
-    }
-    for(let [k, b] of game.combat.buildings) {
-        if(b.type === 'rocks') continue;
+  const safeDt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
+  if (!game.combat.warStartMs) game.combat.warStartMs = Date.now();
+  game.combat.warElapsedMs = Math.max(0, (game.combat.warElapsedMs || 0) + safeDt * 1000);
+  updateUltimateChargeState(game);
+  applyGoldUltimateEffect(game);
+  const rewardMultiplier = computeWarRewardMultiplier(game.combat.warElapsedMs);
+  const Hex = resolveHex(game, hexImpl);
+  const activeUltimates = game.combat.ultimates?.activeEffects || {};
+  const ultimateLevelOverrides =
+    game.combat.ultimates?.levels && typeof game.combat.ultimates.levels === 'object'
+      ? game.combat.ultimates.levels
+      : {};
+  const ultimateLevels = {
+    ...DEFAULT_ULTIMATE_LEVELS,
+    ...ultimateLevelOverrides,
+  };
+  const rushLevel = Number(ultimateLevels.rush ?? DEFAULT_ULTIMATE_LEVELS.rush);
+  const manpowerLevel = Number(ultimateLevels.manpower ?? DEFAULT_ULTIMATE_LEVELS.manpower);
+  const rushSpeedMultiplier = activeUltimates.rush
+    ? (activeUltimates.rush.speedMultiplier ??
+      resolveUltimateLevelValue(ULTIMATE_CONFIG.rush.speedMultiplier, rushLevel))
+    : 1;
+  const manpowerSpawnRateMultiplier = activeUltimates.manpower
+    ? (activeUltimates.manpower.spawnRateMultiplier ??
+      resolveUltimateLevelValue(ULTIMATE_CONFIG.manpower.spawnRateMultiplier, manpowerLevel))
+    : 1;
+  const manpowerDoubleSpawnChance = activeUltimates.manpower
+    ? (activeUltimates.manpower.doubleSpawnChance ??
+      resolveUltimateLevelValue(ULTIMATE_CONFIG.manpower.doubleSpawnChance, manpowerLevel))
+    : 0;
+  if (activeUltimates.rush && !activeUltimates.rush.expiresAtMs) {
+    activeUltimates.rush.expiresAtMs =
+      game.combat.warElapsedMs + getUltimateDurationMs('rush', rushLevel);
+  }
+  if (activeUltimates.manpower && !activeUltimates.manpower.expiresAtMs) {
+    activeUltimates.manpower.expiresAtMs =
+      game.combat.warElapsedMs + getUltimateDurationMs('manpower', manpowerLevel);
+  }
+  for (let [k, b] of game.combat.buildings) {
+    if (b.type === 'rocks') continue;
 
-        // PRODUCTION
-        b.prodTimer += safeDt;
-        const def = COMBAT_BUILDINGS[b.type.toUpperCase()];
-        if(!def) continue;
+    // PRODUCTION
+    b.prodTimer += safeDt;
+    const def = COMBAT_BUILDINGS[b.type.toUpperCase()];
+    if (!def) continue;
 
-        // Determine correct rate: specific prodRate > upgrades > default rate
-        let rate = def.prodRate || def.rate;
-        if (b.owner === 'player' && def.spawn) rate = getSpawnRate(game, rate) * manpowerSpawnRateMultiplier;
+    // Determine correct rate: specific prodRate > upgrades > default rate
+    let rate = def.prodRate || def.rate;
+    if (b.owner === 'player' && def.spawn)
+      rate = getSpawnRate(game, rate) * manpowerSpawnRateMultiplier;
 
-        if((def.spawn || def.income) && b.prodTimer >= rate) {
-            b.prodTimer = 0;
-            const hex = game.parseKey(k);
+    if ((def.spawn || def.income) && b.prodTimer >= rate) {
+      b.prodTimer = 0;
+      const hex = game.parseKey(k);
 
-            // Income Logic (Mine OR Castle)
-            if(def.income) {
-                const scaledIncome = Math.max(0, Math.floor(def.income * rewardMultiplier));
-                if (scaledIncome <= 0) continue;
-                if(b.owner === 'player') {
-                    game.gold += scaledIncome;
-                    game.spawnTxt(hex, `+${scaledIncome}g`, '#ffd166');
-                } else {
-                    game.combat.ai.gold += scaledIncome;
-                    // Visual cue for AI mining
-                    if(b.type === 'mine' && Math.random() > 0.8) game.spawnTxt(hex, `+${scaledIncome}g`, '#ef476f');
-                }
-            }
-
-            // Spawn Logic
-            if (def.spawn) {
-                spawnUnit(game, def.spawn, b.owner, hex);
-                if (b.owner === 'player' && manpowerDoubleSpawnChance > 0 && Math.random() < manpowerDoubleSpawnChance) {
-                    spawnUnit(game, def.spawn, b.owner, hex);
-                }
-                b.pulse = 0.5;
-            }
-        }
-
-        // ATTACK
-        const stats = getBuildingStats(game, b.type, b.owner);
-        if(stats.dmg) {
-            b.attackTimer += safeDt;
-            if(b.attackTimer >= (stats.rate || 1.0)) {
-                const hex = game.parseKey(k);
-                let target = null;
-                let minDist = stats.range;
-
-                for(let u of game.combat.units) {
-                    if(u.owner !== b.owner) {
-                        const d = Hex.distance(hex, Hex.round(u.pos));
-                        if(d <= minDist) { minDist = d; target = u; }
-                    }
-                }
-
-                if(target) {
-                    b.attackTimer = 0;
-                    damageUnit(game, target, stats.dmg, b.owner);
-                    if (b.type === 'tower' || b.type === 'castle') game.playSound('tower', { allowOverlap: true });
-                    game.combat.fx.push({ startHex: hex, endPos: target.pos, life: 0.15, color: b.owner === 'player' ? '#0ff' : '#f00' });
-                }
-            }
-        }
-    }
-
-    for(let i=game.combat.units.length-1; i>=0; i--) {
-        let u = game.combat.units[i];
-        const currentHex = Hex.round(u.pos);
-        const key = currentHex.toString();
-        if(game.combat.territory.has(key)) {
-            const tile = game.combat.territory.get(key);
-            if(tile.owner !== u.owner && tile.owner !== 'scorched') tile.owner = u.owner;
-        }
-        let target = null;
-        let minDist = Infinity;
-        game.combat.units.forEach(other => {
-            if(u.owner !== other.owner) {
-                const d = Hex.distance(currentHex, Hex.round(other.pos));
-                if(d < minDist) { minDist = d; target = other; }
-            }
-        });
-        if(!target || minDist > u.range) {
-            for(let [bk, b] of game.combat.buildings) {
-                if(b.owner !== u.owner) {
-                    const bHex = game.parseKey(bk);
-                    const d = Hex.distance(currentHex, bHex);
-                    if(d < minDist) { minDist = d; target = { ...b, hex: bHex, isBuilding: true, key: bk }; }
-                }
-            }
-        }
-        u.cooldown -= safeDt;
-        if(target && minDist <= u.range) {
-            if(u.cooldown <= 0) {
-                u.cooldown = 1.0;
-                if (u.type === 'archer') game.playSound('arrow', { allowOverlap: true });
-                if (u.type === 'soldier') game.playSound('sword', { allowOverlap: true });
-                if (u.type === 'dragon') game.playSound('rare', { allowOverlap: true });
-                if(target.isBuilding) {
-                    damageBuilding(game, target.key, u.dmg, u.owner);
-                } else {
-                    damageUnit(game, target, u.dmg, u.owner);
-                }
-            }
+      // Income Logic (Mine OR Castle)
+      if (def.income) {
+        const scaledIncome = Math.max(0, Math.floor(def.income * rewardMultiplier));
+        if (scaledIncome <= 0) continue;
+        if (b.owner === 'player') {
+          game.gold += scaledIncome;
+          game.spawnTxt(hex, `+${scaledIncome}g`, '#ffd166');
         } else {
-            const defaultTarget = u.owner === 'player' ? {q:0, r:-8} : {q:0, r:8};
-            const dest = target ? (target.pos || target.hex) : defaultTarget;
-            const dq = dest.q - u.pos.q;
-            const dr = dest.r - u.pos.r;
-            const dist = Math.hypot(dq, dr);
-            if(dist > 0.1) {
-                const speedMultiplier = u.owner === 'player' ? rushSpeedMultiplier : 1;
-                const speed = u.speed * safeDt * 0.5 * speedMultiplier;
-                u.pos.q += (dq / dist) * speed;
-                u.pos.r += (dr / dist) * speed;
-                u.pos.s = -u.pos.q - u.pos.r;
-            }
+          game.combat.ai.gold += scaledIncome;
+          // Visual cue for AI mining
+          if (b.type === 'mine' && Math.random() > 0.8)
+            game.spawnTxt(hex, `+${scaledIncome}g`, '#ef476f');
         }
-    }
-    game.combat.units = game.combat.units.filter(u => u.hp > 0);
-    game.updateHUD();
+      }
 
-    game.combat.ai.timer += safeDt;
-    if(game.combat.ai.timer > game.combat.ai.nextMove) {
-        game.combat.ai.timer = 0;
-        game.combat.ai.nextMove = 2.0 + Math.random();
-        runAI(game);
+      // Spawn Logic
+      if (def.spawn) {
+        spawnUnit(game, def.spawn, b.owner, hex);
+        if (
+          b.owner === 'player' &&
+          manpowerDoubleSpawnChance > 0 &&
+          Math.random() < manpowerDoubleSpawnChance
+        ) {
+          spawnUnit(game, def.spawn, b.owner, hex);
+        }
+        b.pulse = 0.5;
+      }
     }
+
+    // ATTACK
+    const stats = getBuildingStats(game, b.type, b.owner);
+    if (stats.dmg) {
+      b.attackTimer += safeDt;
+      if (b.attackTimer >= (stats.rate || 1.0)) {
+        const hex = game.parseKey(k);
+        let target = null;
+        let minDist = stats.range;
+
+        for (let u of game.combat.units) {
+          if (u.owner !== b.owner) {
+            const d = Hex.distance(hex, Hex.round(u.pos));
+            if (d <= minDist) {
+              minDist = d;
+              target = u;
+            }
+          }
+        }
+
+        if (target) {
+          b.attackTimer = 0;
+          damageUnit(game, target, stats.dmg, b.owner);
+          if (b.type === 'tower' || b.type === 'castle')
+            game.playSound('tower', { allowOverlap: true });
+          game.combat.fx.push({
+            startHex: hex,
+            endPos: target.pos,
+            life: 0.15,
+            color: b.owner === 'player' ? '#0ff' : '#f00',
+          });
+        }
+      }
+    }
+  }
+
+  for (let i = game.combat.units.length - 1; i >= 0; i--) {
+    let u = game.combat.units[i];
+    const currentHex = Hex.round(u.pos);
+    const key = currentHex.toString();
+    if (game.combat.territory.has(key)) {
+      const tile = game.combat.territory.get(key);
+      if (tile.owner !== u.owner && tile.owner !== 'scorched') tile.owner = u.owner;
+    }
+    let target = null;
+    let minDist = Infinity;
+    game.combat.units.forEach((other) => {
+      if (u.owner !== other.owner) {
+        const d = Hex.distance(currentHex, Hex.round(other.pos));
+        if (d < minDist) {
+          minDist = d;
+          target = other;
+        }
+      }
+    });
+    if (!target || minDist > u.range) {
+      for (let [bk, b] of game.combat.buildings) {
+        if (b.owner !== u.owner) {
+          const bHex = game.parseKey(bk);
+          const d = Hex.distance(currentHex, bHex);
+          if (d < minDist) {
+            minDist = d;
+            target = { ...b, hex: bHex, isBuilding: true, key: bk };
+          }
+        }
+      }
+    }
+    u.cooldown -= safeDt;
+    if (target && minDist <= u.range) {
+      if (u.cooldown <= 0) {
+        u.cooldown = 1.0;
+        if (u.type === 'archer') game.playSound('arrow', { allowOverlap: true });
+        if (u.type === 'soldier') game.playSound('sword', { allowOverlap: true });
+        if (u.type === 'dragon') game.playSound('rare', { allowOverlap: true });
+        if (target.isBuilding) {
+          damageBuilding(game, target.key, u.dmg, u.owner);
+        } else {
+          damageUnit(game, target, u.dmg, u.owner);
+        }
+      }
+    } else {
+      const defaultTarget = u.owner === 'player' ? { q: 0, r: -8 } : { q: 0, r: 8 };
+      const dest = target ? target.pos || target.hex : defaultTarget;
+      const dq = dest.q - u.pos.q;
+      const dr = dest.r - u.pos.r;
+      const dist = Math.hypot(dq, dr);
+      if (dist > 0.1) {
+        const speedMultiplier = u.owner === 'player' ? rushSpeedMultiplier : 1;
+        const speed = u.speed * safeDt * 0.5 * speedMultiplier;
+        u.pos.q += (dq / dist) * speed;
+        u.pos.r += (dr / dist) * speed;
+        u.pos.s = -u.pos.q - u.pos.r;
+      }
+    }
+  }
+  game.combat.units = game.combat.units.filter((u) => u.hp > 0);
+  game.updateHUD();
+
+  game.combat.ai.timer += safeDt;
+  if (game.combat.ai.timer > game.combat.ai.nextMove) {
+    game.combat.ai.timer = 0;
+    game.combat.ai.nextMove = 2.0 + Math.random();
+    runAI(game);
+  }
 }
 
 /** Track leaderboard totals when the player lands a final blow. */
 export function registerKill(game, owner) {
-    if(owner !== 'player') return;
-    game.stats.totalKills++;
-    game.session.warKills++;
-    game.stats.bestKills = Math.max(game.stats.bestKills, game.session.warKills);
-    game.updateLeaderboardUI();
+  if (owner !== 'player') return;
+  game.stats.totalKills++;
+  game.session.warKills++;
+  game.stats.bestKills = Math.max(game.stats.bestKills, game.session.warKills);
+  game.updateLeaderboardUI();
 }
 
 /**
@@ -476,7 +514,7 @@ export function registerKill(game, owner) {
  * @returns {number} non-negative level derived from wars won.
  */
 function resolveWarLevel(game) {
-    return Math.max(0, Number.isFinite(game?.stats?.warsWon) ? game.stats.warsWon : 0);
+  return Math.max(0, Number.isFinite(game?.stats?.warsWon) ? game.stats.warsWon : 0);
 }
 
 /**
@@ -485,10 +523,10 @@ function resolveWarLevel(game) {
  * @returns {number} resolved enemy level.
  */
 function syncWarLevel(game) {
-    const warsWon = resolveWarLevel(game);
-    game.stats.warsWon = warsWon;
-    game.difficulty = warsWon;
-    return resolveEnemyLevel(game);
+  const warsWon = resolveWarLevel(game);
+  game.stats.warsWon = warsWon;
+  game.difficulty = warsWon;
+  return resolveEnemyLevel(game);
 }
 
 /**
@@ -497,13 +535,13 @@ function syncWarLevel(game) {
  * @param {string} outcome final result label.
  */
 export function recordWarEnd(game, outcome) {
-    const normalized = outcome || 'RETREAT';
-    const resolvedLevel = syncWarLevel(game);
-    game.stats.bestLevel = Math.max(game.stats.bestLevel, resolvedLevel);
-    game.stats.bestKills = Math.max(game.stats.bestKills, game.session.warKills);
-    game.stats.lastOutcome = normalized;
-    game.updateLeaderboardUI();
-    game.saveGame();
+  const normalized = outcome || 'RETREAT';
+  const resolvedLevel = syncWarLevel(game);
+  game.stats.bestLevel = Math.max(game.stats.bestLevel, resolvedLevel);
+  game.stats.bestKills = Math.max(game.stats.bestKills, game.session.warKills);
+  game.stats.lastOutcome = normalized;
+  game.updateLeaderboardUI();
+  game.saveGame();
 }
 
 /**
@@ -514,35 +552,40 @@ export function recordWarEnd(game, outcome) {
  * @param {string} attackerOwner attacking side.
  */
 export function damageUnit(game, u, dmg, attackerOwner) {
-    u.hp -= dmg;
-    game.spawnTxt(u.pos, `-${Math.floor(dmg)}`, '#ff5555');
+  u.hp -= dmg;
+  game.spawnTxt(u.pos, `-${Math.floor(dmg)}`, '#ff5555');
 
-    // BOUNTY LOGIC
-    if (u.hp <= 0) {
-        const deathKey = u.type === 'dragon'
-            ? 'raredeath'
-            : (u.type === 'archer' || u.type === 'soldier' ? 'death' : null);
-        const shouldPlayDeath = u.type === 'dragon'
-            ? Math.random() < DEATH_SFX_CHANCE.rare
-            : Math.random() < DEATH_SFX_CHANCE.normal;
-        if (deathKey && shouldPlayDeath) {
-            game.playSound(deathKey, { allowOverlap: true });
-        }
-        game.spawnBurstAtHex(u.pos, 7);
-        registerKill(game, attackerOwner);
-        if (Math.random() > 0.5) { // 50% Chance
-            const bounty = Math.floor(Math.random() * 2) + 1; // 1-2g
-            const rewardMultiplier = computeWarRewardMultiplier(game.combat?.warElapsedMs || 0);
-            const scaledBounty = Math.max(0, Math.floor(bounty * rewardMultiplier));
-            if (scaledBounty <= 0) return;
-            if (attackerOwner === 'player') {
-                game.gold += scaledBounty;
-                game.spawnTxt(u.pos, `+${scaledBounty}g`, '#00ff00'); // Green text
-            } else {
-                game.combat.ai.gold += scaledBounty;
-            }
-        }
+  // BOUNTY LOGIC
+  if (u.hp <= 0) {
+    const deathKey =
+      u.type === 'dragon'
+        ? 'raredeath'
+        : u.type === 'archer' || u.type === 'soldier'
+          ? 'death'
+          : null;
+    const shouldPlayDeath =
+      u.type === 'dragon'
+        ? Math.random() < DEATH_SFX_CHANCE.rare
+        : Math.random() < DEATH_SFX_CHANCE.normal;
+    if (deathKey && shouldPlayDeath) {
+      game.playSound(deathKey, { allowOverlap: true });
     }
+    game.spawnBurstAtHex(u.pos, 7);
+    registerKill(game, attackerOwner);
+    if (Math.random() > 0.5) {
+      // 50% Chance
+      const bounty = Math.floor(Math.random() * 2) + 1; // 1-2g
+      const rewardMultiplier = computeWarRewardMultiplier(game.combat?.warElapsedMs || 0);
+      const scaledBounty = Math.max(0, Math.floor(bounty * rewardMultiplier));
+      if (scaledBounty <= 0) return;
+      if (attackerOwner === 'player') {
+        game.gold += scaledBounty;
+        game.spawnTxt(u.pos, `+${scaledBounty}g`, '#00ff00'); // Green text
+      } else {
+        game.combat.ai.gold += scaledBounty;
+      }
+    }
+  }
 }
 
 /**
@@ -550,38 +593,39 @@ export function damageUnit(game, u, dmg, attackerOwner) {
  * @param {object} game current game object.
  */
 export function runAI(game) {
-    const candidates = [];
-    for(let [k, t] of game.combat.territory) {
-        if(t.owner === 'enemy' && !game.combat.buildings.has(k)) {
-            if (isFrontier(game, k, 'enemy')) {
-                const type = game.combat.slots.get(k);
-                if(type) candidates.push({ key: k, type: type });
-            }
-        }
+  const candidates = [];
+  for (let [k, t] of game.combat.territory) {
+    if (t.owner === 'enemy' && !game.combat.buildings.has(k)) {
+      if (isFrontier(game, k, 'enemy')) {
+        const type = game.combat.slots.get(k);
+        if (type) candidates.push({ key: k, type: type });
+      }
+    }
+  }
+
+  if (candidates.length > 0) {
+    const choice = candidates[Math.floor(Math.random() * candidates.length)];
+    const hex = game.parseKey(choice.key);
+    let typeToBuy = choice.type;
+
+    if (typeToBuy === 'mystery') {
+      const r = Math.random();
+      if (r < 0.9) typeToBuy = 'rocks';
+      else {
+        const r2 = Math.random();
+        if (r2 < 0.5) typeToBuy = 'barracks';
+        else typeToBuy = 'lair';
+      }
     }
 
-    if(candidates.length > 0) {
-        const choice = candidates[Math.floor(Math.random() * candidates.length)];
-        const hex = game.parseKey(choice.key);
-        let typeToBuy = choice.type;
-
-        if(typeToBuy === 'mystery') {
-            const r = Math.random();
-            if(r < 0.9) typeToBuy = 'rocks';
-            else {
-                const r2 = Math.random();
-                if(r2 < 0.5) typeToBuy = 'barracks'; else typeToBuy = 'lair';
-            }
-        }
-
-        const def = COMBAT_BUILDINGS[typeToBuy.toUpperCase()];
-        if(def && game.combat.ai.gold >= def.cost) {
-            game.combat.ai.gold -= def.cost;
-            addBuilding(game, hex, typeToBuy, 'enemy');
-            if(typeToBuy === 'rocks') game.spawnTxt(hex, "AI: ROCKS...", '#ef476f');
-            if(typeToBuy === 'lair') game.spawnTxt(hex, "AI: LEGENDARY!", '#ef476f');
-        }
+    const def = COMBAT_BUILDINGS[typeToBuy.toUpperCase()];
+    if (def && game.combat.ai.gold >= def.cost) {
+      game.combat.ai.gold -= def.cost;
+      addBuilding(game, hex, typeToBuy, 'enemy');
+      if (typeToBuy === 'rocks') game.spawnTxt(hex, 'AI: ROCKS...', '#ef476f');
+      if (typeToBuy === 'lair') game.spawnTxt(hex, 'AI: LEGENDARY!', '#ef476f');
     }
+  }
 }
 
 /**
@@ -592,26 +636,26 @@ export function runAI(game) {
  * @param {string} [attackerOwner] faction id of the attacker (player|enemy).
  */
 export function damageBuilding(game, key, amt, attackerOwner) {
-    const b = game.combat.buildings.get(key);
-    if(!b) return;
-    b.hp -= amt;
-    b.pulse = 1.0;
-    if(b.hp <= 0) {
-        if(b.type === 'castle') {
-            endWar(game, b.owner === 'enemy' ? 'VICTORY' : 'DEFEAT');
-        } else {
-            const hex = game.parseKey(key);
-            const isConnected = checkConnection(game, hex, b.owner);
-            game.combat.buildings.delete(key);
-            scorchEarth(game, key);
-            if (!isConnected) {
-                game.spawnTxt(hex, "SCORCHED!", '#000');
-            } else if(b.owner === 'enemy' && attackerOwner === 'player') {
-                game.wood += 5;
-                game.spawnTxt(hex, "+5w", '#a67c52');
-            }
-        }
+  const b = game.combat.buildings.get(key);
+  if (!b) return;
+  b.hp -= amt;
+  b.pulse = 1.0;
+  if (b.hp <= 0) {
+    if (b.type === 'castle') {
+      endWar(game, b.owner === 'enemy' ? 'VICTORY' : 'DEFEAT');
+    } else {
+      const hex = game.parseKey(key);
+      const isConnected = checkConnection(game, hex, b.owner);
+      game.combat.buildings.delete(key);
+      scorchEarth(game, key);
+      if (!isConnected) {
+        game.spawnTxt(hex, 'SCORCHED!', '#000');
+      } else if (b.owner === 'enemy' && attackerOwner === 'player') {
+        game.wood += 5;
+        game.spawnTxt(hex, '+5w', '#a67c52');
+      }
     }
+  }
 }
 
 /**
@@ -623,32 +667,33 @@ export function damageBuilding(game, key, amt, attackerOwner) {
  * @returns {boolean} true if connected.
  */
 export function checkConnection(game, startHex, owner, hexImpl) {
-    const Hex = resolveHex(game, hexImpl);
-    const castleHex = owner === 'player' ? game.combat.castles.player : game.combat.castles.enemy;
-    if(!castleHex) return true;
-    const queue = [startHex];
-    const visited = new Set();
-    visited.add(startHex.toString());
-    while(queue.length > 0) {
-        const curr = queue.shift();
-        if(curr.equals(castleHex)) return true;
-        for(let i=0; i<6; i++) {
-            const n = Hex.neighbor(curr, i);
-            const nk = n.toString();
-            if(visited.has(nk)) continue;
-            const tile = game.combat.territory.get(nk);
-            if(tile && tile.owner === owner && tile.owner !== 'scorched') {
-                visited.add(nk); queue.push(n);
-            }
-        }
+  const Hex = resolveHex(game, hexImpl);
+  const castleHex = owner === 'player' ? game.combat.castles.player : game.combat.castles.enemy;
+  if (!castleHex) return true;
+  const queue = [startHex];
+  const visited = new Set();
+  visited.add(startHex.toString());
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    if (curr.equals(castleHex)) return true;
+    for (let i = 0; i < 6; i++) {
+      const n = Hex.neighbor(curr, i);
+      const nk = n.toString();
+      if (visited.has(nk)) continue;
+      const tile = game.combat.territory.get(nk);
+      if (tile && tile.owner === owner && tile.owner !== 'scorched') {
+        visited.add(nk);
+        queue.push(n);
+      }
     }
-    return false;
+  }
+  return false;
 }
 
 /** Mark a tile as permanently scorched. */
 export function scorchEarth(game, key) {
-    const tile = game.combat.territory.get(key);
-    if(tile) tile.owner = 'scorched';
+  const tile = game.combat.territory.get(key);
+  if (tile) tile.owner = 'scorched';
 }
 
 /**
@@ -663,28 +708,29 @@ export function scorchEarth(game, key) {
  * @returns {object|null} restored tile payload or null when unavailable.
  */
 export function restoreScorchedTile(game, tileOrKey, options = {}) {
-    const overworldHexes = game?.overworld?.hexes;
-    if (!overworldHexes) return null;
-    const tile = typeof tileOrKey === 'string' ? overworldHexes.get(tileOrKey) : tileOrKey;
-    if (!tile) return null;
-    if (tile.owner !== 'scorched' && tile.type !== 'scorched') return tile;
+  const overworldHexes = game?.overworld?.hexes;
+  if (!overworldHexes) return null;
+  const tile = typeof tileOrKey === 'string' ? overworldHexes.get(tileOrKey) : tileOrKey;
+  if (!tile) return null;
+  if (tile.owner !== 'scorched' && tile.type !== 'scorched') return tile;
 
-    const rng = typeof options.rng === 'function' ? options.rng : Math.random;
-    const prevType = typeof tile.prevType === 'string' ? tile.prevType.toLowerCase() : null;
-    const normalizedPrev = prevType && OVERWORLD_TILES[prevType.toUpperCase()] ? prevType : null;
-    const type = normalizedPrev || rollWeightedTerrainType(OVERWORLD_RESTORE_WEIGHTS, rng);
-    const updated = { ...tile, type, owner: 'player', isRebelCamp: false };
-    if (type === 'water') updated.isWater = true;
-    else if (updated.isWater) delete updated.isWater;
-    if (updated.prevType) delete updated.prevType;
-    if (updated.scorchedBy) delete updated.scorchedBy;
-    if (updated.rebelSpreadMisses !== undefined) delete updated.rebelSpreadMisses;
+  const rng = typeof options.rng === 'function' ? options.rng : Math.random;
+  const prevType = typeof tile.prevType === 'string' ? tile.prevType.toLowerCase() : null;
+  const normalizedPrev = prevType && OVERWORLD_TILES[prevType.toUpperCase()] ? prevType : null;
+  const type = normalizedPrev || rollWeightedTerrainType(OVERWORLD_RESTORE_WEIGHTS, rng);
+  const updated = { ...tile, type, owner: 'player', isRebelCamp: false };
+  if (type === 'water') updated.isWater = true;
+  else if (updated.isWater) delete updated.isWater;
+  if (updated.prevType) delete updated.prevType;
+  if (updated.scorchedBy) delete updated.scorchedBy;
+  if (updated.rebelSpreadMisses !== undefined) delete updated.rebelSpreadMisses;
 
-    const key = tile.hex?.toString?.()
-        || tile.toString?.()
-        || (typeof tileOrKey === 'string' ? tileOrKey : null);
-    if (key) overworldHexes.set(key, updated);
-    return updated;
+  const key =
+    tile.hex?.toString?.() ||
+    tile.toString?.() ||
+    (typeof tileOrKey === 'string' ? tileOrKey : null);
+  if (key) overworldHexes.set(key, updated);
+  return updated;
 }
 
 /**
@@ -696,35 +742,35 @@ export function restoreScorchedTile(game, tileOrKey, options = {}) {
  * @returns {Array<object>} list of restored tile payloads.
  */
 export function restoreScorchedTilesByRebelCamp(game, rebelKey, options = {}) {
-    const overworldHexes = game?.overworld?.hexes;
-    if (!overworldHexes || !rebelKey) return [];
-    const restored = [];
-    overworldHexes.forEach((tile) => {
-        if (tile?.owner !== 'scorched') return;
-        if (tile?.scorchedBy !== rebelKey) return;
-        const updated = restoreScorchedTile(game, tile, options);
-        if (updated) restored.push(updated);
-    });
-    if (!restored.length) return restored;
+  const overworldHexes = game?.overworld?.hexes;
+  if (!overworldHexes || !rebelKey) return [];
+  const restored = [];
+  overworldHexes.forEach((tile) => {
+    if (tile?.owner !== 'scorched') return;
+    if (tile?.scorchedBy !== rebelKey) return;
+    const updated = restoreScorchedTile(game, tile, options);
+    if (updated) restored.push(updated);
+  });
+  if (!restored.length) return restored;
 
-    if (typeof game.calcOverworldGhosts === 'function') {
-        game.calcOverworldGhosts();
-    }
-    if (typeof game.refreshClusterBonuses === 'function') {
-        game.refreshClusterBonuses();
-    }
+  if (typeof game.calcOverworldGhosts === 'function') {
+    game.calcOverworldGhosts();
+  }
+  if (typeof game.refreshClusterBonuses === 'function') {
+    game.refreshClusterBonuses();
+  }
 
-    const selectedKey = game.selectedOverworldTile?.hex?.toString?.()
-        || game.selectedOverworldTile?.toString?.();
-    if (selectedKey) {
-        const refreshed = overworldHexes.get(selectedKey);
-        if (refreshed && typeof game.setSelectedOverworldTile === 'function') {
-            game.setSelectedOverworldTile(refreshed);
-        } else if (refreshed) {
-            game.selectedOverworldTile = refreshed;
-        }
+  const selectedKey =
+    game.selectedOverworldTile?.hex?.toString?.() || game.selectedOverworldTile?.toString?.();
+  if (selectedKey) {
+    const refreshed = overworldHexes.get(selectedKey);
+    if (refreshed && typeof game.setSelectedOverworldTile === 'function') {
+      game.setSelectedOverworldTile(refreshed);
+    } else if (refreshed) {
+      game.selectedOverworldTile = refreshed;
     }
-    return restored;
+  }
+  return restored;
 }
 
 /**
@@ -736,44 +782,44 @@ export function restoreScorchedTilesByRebelCamp(game, rebelKey, options = {}) {
  * @returns {boolean} true when buildable.
  */
 export function isFrontier(game, key, who, hexImpl) {
-    const Hex = resolveHex(game, hexImpl);
-    const tile = game.combat.territory.get(key);
-    if(!tile || tile.owner !== who) return false;
-    if(game.combat.buildings.has(key)) return false;
+  const Hex = resolveHex(game, hexImpl);
+  const tile = game.combat.territory.get(key);
+  if (!tile || tile.owner !== who) return false;
+  if (game.combat.buildings.has(key)) return false;
 
-    const hex = game.parseKey(key);
+  const hex = game.parseKey(key);
 
-    // Consider proximity to the owning side's castle as frontier too —
-    // this ensures tiles directly next to the castle are buildable at war start
-    // even if no other friendly buildings have been placed yet.
-    const castleHex = game?.combat?.castles?.[who];
-    if (castleHex && Hex.distance(hex, castleHex) === 1) {
-        const neighbors = Array.from({ length: 6 }, (_unused, i) => Hex.neighbor(hex, i));
-        const matchesCastle = neighbors.some((n) => {
-            if (typeof n.equals === 'function') return n.equals(castleHex);
-            return n.toString() === castleHex.toString();
-        });
-        if (matchesCastle) return true;
+  // Consider proximity to the owning side's castle as frontier too —
+  // this ensures tiles directly next to the castle are buildable at war start
+  // even if no other friendly buildings have been placed yet.
+  const castleHex = game?.combat?.castles?.[who];
+  if (castleHex && Hex.distance(hex, castleHex) === 1) {
+    const neighbors = Array.from({ length: 6 }, (_unused, i) => Hex.neighbor(hex, i));
+    const matchesCastle = neighbors.some((n) => {
+      if (typeof n.equals === 'function') return n.equals(castleHex);
+      return n.toString() === castleHex.toString();
+    });
+    if (matchesCastle) return true;
+  }
+
+  for (let i = 0; i < 6; i++) {
+    const n = Hex.neighbor(hex, i);
+    const b = game.combat.buildings.get(n.toString());
+    if (b && b.owner === who) return true;
+  }
+
+  const opponent = who === 'player' ? 'enemy' : 'player';
+  for (let q = -3; q <= 3; q++) {
+    for (let r = -3; r <= 3; r++) {
+      if (Math.abs(q + r) > 3) continue;
+      if (q === 0 && r === 0) continue;
+
+      const neighbor = hex.add(new Hex(q, r, -q - r));
+      const b = game.combat.buildings.get(neighbor.toString());
+      if (b && b.owner === opponent) return true;
     }
-
-    for(let i=0; i<6; i++) {
-        const n = Hex.neighbor(hex, i);
-        const b = game.combat.buildings.get(n.toString());
-        if(b && b.owner === who) return true;
-    }
-
-    const opponent = who === 'player' ? 'enemy' : 'player';
-    for(let q = -3; q <= 3; q++) {
-        for(let r = -3; r <= 3; r++) {
-            if (Math.abs(q + r) > 3) continue;
-            if (q===0 && r===0) continue;
-
-            const neighbor = hex.add(new Hex(q, r, -q-r));
-            const b = game.combat.buildings.get(neighbor.toString());
-            if(b && b.owner === opponent) return true;
-        }
-    }
-    return false;
+  }
+  return false;
 }
 
 /**
@@ -783,29 +829,30 @@ export function isFrontier(game, key, who, hexImpl) {
  * @param {string} type requested building type.
  */
 export function buyBuilding(game, hex, type) {
-    const def = COMBAT_BUILDINGS[type.toUpperCase()];
-    if(game.gold >= def.cost) {
-        game.gold -= def.cost;
-        let finalType = type;
-        if(type === 'mystery') {
-            const roll = Math.random();
-            if(roll < 0.9) {
-                finalType = 'rocks';
-                game.spawnTxt(hex, "ROCKS...", '#888');
-            } else {
-                const r2 = Math.random();
-                if(r2 < 0.5) finalType = 'barracks';
-                else {
-                    finalType = 'lair';
-                    game.spawnTxt(hex, "LEGENDARY!", '#d4f');
-                }
-            }
+  const def = COMBAT_BUILDINGS[type.toUpperCase()];
+  if (game.gold >= def.cost) {
+    game.gold -= def.cost;
+    let finalType = type;
+    if (type === 'mystery') {
+      const roll = Math.random();
+      if (roll < 0.9) {
+        finalType = 'rocks';
+        game.spawnTxt(hex, 'ROCKS...', '#888');
+      } else {
+        const r2 = Math.random();
+        if (r2 < 0.5) finalType = 'barracks';
+        else {
+          finalType = 'lair';
+          game.spawnTxt(hex, 'LEGENDARY!', '#d4f');
         }
-        if(finalType !== 'rocks' && finalType !== 'lair') game.spawnTxt(hex, finalType.toUpperCase(), '#fff');
-        addBuilding(game, hex, finalType, 'player');
-    } else {
-        game.spawnTxt(hex, `Need ${def.cost}g`, '#ffd166');
+      }
     }
+    if (finalType !== 'rocks' && finalType !== 'lair')
+      game.spawnTxt(hex, finalType.toUpperCase(), '#fff');
+    addBuilding(game, hex, finalType, 'player');
+  } else {
+    game.spawnTxt(hex, `Need ${def.cost}g`, '#ffd166');
+  }
 }
 
 /**
@@ -816,13 +863,17 @@ export function buyBuilding(game, hex, type) {
  * @param {string} owner side placing the structure.
  */
 export function addBuilding(game, hex, type, owner) {
-    let stats = getBuildingStats(game, type, owner);
-    game.combat.buildings.set(hex.toString(), {
-        type, owner, hp: stats.hp, maxHp: stats.hp,
-        prodTimer: 0, attackTimer: Math.random(),
-        pulse: 0
-    });
-    if (owner === 'player') game.spawnBurstAtHex(hex, 6);
+  let stats = getBuildingStats(game, type, owner);
+  game.combat.buildings.set(hex.toString(), {
+    type,
+    owner,
+    hp: stats.hp,
+    maxHp: stats.hp,
+    prodTimer: 0,
+    attackTimer: Math.random(),
+    pulse: 0,
+  });
+  if (owner === 'player') game.spawnBurstAtHex(hex, 6);
 }
 
 /**
@@ -833,14 +884,19 @@ export function addBuilding(game, hex, type, owner) {
  * @param {object} hex spawn position.
  */
 export function spawnUnit(game, type, owner, hex) {
-    let stats = UNITS[type];
-    if (owner === 'player') stats = getUnitStats(game, type);
-    game.combat.units.push({
-        type, owner,
-        pos: {q:hex.q, r:hex.r, s:hex.s},
-        hp: stats.hp, maxHp: stats.hp, dmg: stats.dmg, range: stats.range, speed: stats.speed,
-        cooldown: 0
-    });
+  let stats = UNITS[type];
+  if (owner === 'player') stats = getUnitStats(game, type);
+  game.combat.units.push({
+    type,
+    owner,
+    pos: { q: hex.q, r: hex.r, s: hex.s },
+    hp: stats.hp,
+    maxHp: stats.hp,
+    dmg: stats.dmg,
+    range: stats.range,
+    speed: stats.speed,
+    cooldown: 0,
+  });
 }
 
 /**
@@ -850,81 +906,79 @@ export function spawnUnit(game, type, owner, hex) {
  * @param {object} [hexImpl] optional Hex implementation for grid generation.
  */
 export function startWar(game, clickEvt, hexImpl) {
-    const Hex = resolveHex(game, hexImpl);
-    const cost = computeWarEntryFee(game);
-    const anchorX = clickEvt ? clickEvt.clientX : window.innerWidth * 0.1;
-    const anchorY = clickEvt ? clickEvt.clientY : window.innerHeight * 0.1;
-    if(cost > 0 && game.gold < cost) {
-        game.spawnTxt(new Hex(0,0), `Need ${cost}g`, '#f55');
-        game.showFloatingText(anchorX, anchorY, `Need ${cost}g`, 'alert-text');
-        return;
+  const Hex = resolveHex(game, hexImpl);
+  const cost = computeWarEntryFee(game);
+  const anchorX = clickEvt ? clickEvt.clientX : window.innerWidth * 0.1;
+  const anchorY = clickEvt ? clickEvt.clientY : window.innerHeight * 0.1;
+  if (cost > 0 && game.gold < cost) {
+    game.spawnTxt(new Hex(0, 0), `Need ${cost}g`, '#f55');
+    game.showFloatingText(anchorX, anchorY, `Need ${cost}g`, 'alert-text');
+    return;
+  }
+  if (cost > 0) game.gold -= cost;
+  window.enterCombat?.();
+  game.triggerCameraShake();
+  game.showFloatingText(anchorX, anchorY, 'TO WAR!', 'gold-text');
+  game.spawnParticleBurst(anchorX, anchorY, 8);
+  game.resetSession();
+  game.stats.warsFought++;
+  game.updateLeaderboardUI();
+  game.state = 'COMBAT';
+
+  game.combat.territory.clear();
+  game.combat.buildings.clear();
+  game.combat.slots.clear();
+  game.combat.units = [];
+  game.combat.fx = [];
+  const aiPrep = deriveAIPrep(game);
+  game.combat.ai.timer = 0;
+  game.combat.ai.nextMove = aiPrep.nextMove;
+  game.combat.ai.gold = aiPrep.gold;
+  game.combat.warStartMs = Date.now();
+  game.combat.warElapsedMs = 0;
+
+  const W = 4;
+  const H = 9;
+  for (let r = -H; r <= H; r++) {
+    const centerQ = -Math.floor(r / 2);
+    for (let q = centerQ - W; q <= centerQ + W; q++) {
+      const hex = new Hex(q, r);
+      const key = hex.toString();
+      // Ownership layout: player controls rows above the equator (r > 0), enemy controls
+      // rows below (r < 0), and the equator (r === 0) forms a neutral no-man's-land that
+      // must be captured by marching units across it.
+      const owner = r === 0 ? 'neutral' : r > 0 ? 'player' : 'enemy';
+      game.combat.territory.set(key, { owner, hex });
+
+      const rand = Math.random();
+      let type = 'mystery';
+      if (rand > 0.8) type = 'mystery';
+      else if (rand > 0.5) type = 'barracks';
+      else if (rand > 0.25) type = 'mine';
+      else if (rand > 0.15) type = 'range';
+      else type = 'tower';
+      game.combat.slots.set(key, type);
     }
-    if (cost > 0) game.gold -= cost;
-    window.enterCombat?.();
-    game.triggerCameraShake();
-    game.showFloatingText(anchorX, anchorY, 'TO WAR!', 'gold-text');
-    game.spawnParticleBurst(anchorX, anchorY, 8);
-    game.resetSession();
-    game.stats.warsFought++;
-    game.updateLeaderboardUI();
-    game.state = 'COMBAT';
+  }
 
-    game.combat.territory.clear();
-    game.combat.buildings.clear();
-    game.combat.slots.clear();
-    game.combat.units = [];
-    game.combat.fx = [];
-    const aiPrep = deriveAIPrep(game);
-    game.combat.ai.timer = 0;
-    game.combat.ai.nextMove = aiPrep.nextMove;
-    game.combat.ai.gold = aiPrep.gold;
-    game.combat.warStartMs = Date.now();
-    game.combat.warElapsedMs = 0;
+  const pHex = new Hex(-Math.floor(8 / 2), 8);
+  const eHex = new Hex(-Math.floor(-8 / 2), -8);
+  game.combat.castles.player = pHex;
+  game.combat.castles.enemy = eHex;
+  addBuilding(game, pHex, 'castle', 'player');
+  addBuilding(game, eHex, 'castle', 'enemy');
 
-    const W = 4; const H = 9;
-    for(let r = -H; r <= H; r++) {
-        const centerQ = -Math.floor(r/2);
-        for(let q = centerQ - W; q <= centerQ + W; q++) {
-            const hex = new Hex(q, r);
-            const key = hex.toString();
-            // Ownership layout: player controls rows above the equator (r > 0), enemy controls
-            // rows below (r < 0), and the equator (r === 0) forms a neutral no-man's-land that
-            // must be captured by marching units across it.
-            const owner = r === 0
-                ? 'neutral'
-                : (r > 0
-                    ? 'player'
-                    : 'enemy');
-            game.combat.territory.set(key, { owner, hex });
-
-            const rand = Math.random();
-            let type = 'mystery';
-            if(rand > 0.8) type = 'mystery';
-            else if(rand > 0.5) type = 'barracks';
-            else if(rand > 0.25) type = 'mine';
-            else if(rand > 0.15) type = 'range';
-            else type = 'tower';
-            game.combat.slots.set(key, type);
-        }
-    }
-
-    const pHex = new Hex(-Math.floor(8/2), 8);
-    const eHex = new Hex(-Math.floor(-8/2), -8);
-    game.combat.castles.player = pHex;
-    game.combat.castles.enemy = eHex;
-    addBuilding(game, pHex, 'castle', 'player');
-    addBuilding(game, eHex, 'castle', 'enemy');
-
-    const warZoom = game.deviceProfile && game.deviceProfile.isMobile
-        ? game.deviceProfile.baseZoom
-        : 0.8;
-    game.cam.x = game.viewport.width / 2; game.cam.y = game.viewport.height / 2; game.cam.zoom = warZoom;
-    document.getElementById('ui-overworld').classList.remove('visible');
-    document.getElementById('ui-combat').classList.add('visible');
-    document.getElementById('state-txt').innerText = "WARZONE";
-    game.updateHUD();
-    game.showWarTip();
-    game.playWarStartFX(anchorX, anchorY);
+  const warZoom =
+    game.deviceProfile && game.deviceProfile.isMobile ? game.deviceProfile.baseZoom : 0.8;
+  game.cam.x = game.viewport.width / 2;
+  game.cam.y = game.viewport.height / 2;
+  game.cam.zoom = warZoom;
+  document.getElementById('ui-overworld').classList.remove('visible');
+  document.getElementById('ui-combat').classList.add('visible');
+  document.getElementById('state-txt').innerText = 'WARZONE';
+  game.updateHUD();
+  game.showWarTip();
+  game.playWarStartFX(anchorX, anchorY);
 }
 
 /**
@@ -941,129 +995,135 @@ export function startWar(game, clickEvt, hexImpl) {
  *          report describing converted tiles.
  */
 export function loseOverworldHexes(game, count, protectedKeys = new Set()) {
-    const Hex = resolveHex(game);
-    const currentKeys = new Set(game.overworld.hexes.keys());
-    const removableKeys = new Set(
-        [...currentKeys].filter((k) => game.overworld.hexes.get(k).type !== 'castle' && !protectedKeys.has(k))
-    );
+  const Hex = resolveHex(game);
+  const currentKeys = new Set(game.overworld.hexes.keys());
+  const removableKeys = new Set(
+    [...currentKeys].filter(
+      (k) => game.overworld.hexes.get(k).type !== 'castle' && !protectedKeys.has(k)
+    )
+  );
 
-    const parseKey = (key) => {
-        const [q, r] = key.split(',').map(Number);
-        return new Hex(q, r, -q - r);
-    };
+  const parseKey = (key) => {
+    const [q, r] = key.split(',').map(Number);
+    return new Hex(q, r, -q - r);
+  };
 
-    const hexDistance = (hex) => {
-        const s = typeof hex.s === 'number' ? hex.s : -hex.q - hex.r;
-        return (Math.abs(hex.q) + Math.abs(hex.r) + Math.abs(s)) / 2;
-    };
+  const hexDistance = (hex) => {
+    const s = typeof hex.s === 'number' ? hex.s : -hex.q - hex.r;
+    return (Math.abs(hex.q) + Math.abs(hex.r) + Math.abs(s)) / 2;
+  };
 
-    const hexDistanceBetween = (a, b) => {
-        const aS = typeof a.s === 'number' ? a.s : -a.q - a.r;
-        const bS = typeof b.s === 'number' ? b.s : -b.q - b.r;
-        return (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + Math.abs(aS - bS)) / 2;
-    };
+  const hexDistanceBetween = (a, b) => {
+    const aS = typeof a.s === 'number' ? a.s : -a.q - a.r;
+    const bS = typeof b.s === 'number' ? b.s : -b.q - b.r;
+    return (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + Math.abs(aS - bS)) / 2;
+  };
 
-    const isFrontierKey = (key) => {
-        const hex = parseKey(key);
-        for (let i = 0; i < 6; i++) {
-            const neighborKey = Hex.neighbor(hex, i).toString();
-            if (!currentKeys.has(neighborKey)) return true;
+  const isFrontierKey = (key) => {
+    const hex = parseKey(key);
+    for (let i = 0; i < 6; i++) {
+      const neighborKey = Hex.neighbor(hex, i).toString();
+      if (!currentKeys.has(neighborKey)) return true;
+    }
+    return false;
+  };
+
+  const convertTileToPenalty = (key, fateOverride) => {
+    const tile = game.overworld.hexes.get(key) || { hex: parseKey(key) };
+    const fate = fateOverride || (Math.random() < 0.65 ? 'rebelcamp' : 'scorched');
+    const previousType = tile.type;
+    if (fate === 'rebelcamp') {
+      tile.type = 'rebelcamp';
+      if (!tile.prevType && previousType && previousType !== 'rebelcamp') {
+        tile.prevType = previousType;
+      }
+      tile.rebelSpreadMisses = 0;
+      if (tile.scorchedBy) delete tile.scorchedBy;
+    } else {
+      tile.type = 'scorched';
+      if (!tile.prevType && previousType && previousType !== 'scorched') {
+        tile.prevType = previousType;
+      }
+      if (tile.rebelSpreadMisses !== undefined) delete tile.rebelSpreadMisses;
+    }
+    tile.owner = fate === 'rebelcamp' ? 'rebel' : fate;
+    tile.hex = tile.hex || parseKey(key);
+    tile.isRebelCamp = fate === 'rebelcamp';
+    game.overworld.hexes.set(key, tile);
+    return { key, fate, hex: tile.hex };
+  };
+
+  const conversions = [];
+
+  let lost = 0;
+  while (lost < count && removableKeys.size > 0) {
+    const frontier = [...removableKeys].filter((k) => isFrontierKey(k));
+    const pool = frontier.length > 0 ? frontier : [...removableKeys];
+
+    const sortedPool = pool
+      .map((k) => ({ key: k, hex: parseKey(k) }))
+      .sort((a, b) => {
+        const distDelta = hexDistance(b.hex) - hexDistance(a.hex);
+        if (distDelta !== 0) return distDelta;
+        return a.key.localeCompare(b.key);
+      });
+    const keyToRemove = sortedPool[0].key;
+
+    // Ensure the first (farthest) loss always burns to provide a deterministic anchor.
+    const fateOverride = conversions.length === 0 ? 'scorched' : null;
+
+    conversions.push(convertTileToPenalty(keyToRemove, fateOverride));
+    removableKeys.delete(keyToRemove);
+    currentKeys.delete(keyToRemove);
+    lost++;
+  }
+
+  game.calcOverworldGhosts();
+  if (typeof game.refreshClusterBonuses === 'function') {
+    game.refreshClusterBonuses();
+  }
+
+  const counts = conversions.reduce(
+    (tally, conv) => ({ ...tally, [conv.fate]: (tally[conv.fate] || 0) + 1 }),
+    { scorched: 0, rebelcamp: 0 }
+  );
+
+  const rebelCamps = conversions.filter((conv) => conv.fate === 'rebelcamp');
+  if (rebelCamps.length) {
+    const rebelLookup = rebelCamps.map((camp) => ({
+      key: camp.key,
+      hex: camp.hex || parseKey(camp.key),
+    }));
+    conversions
+      .filter((conv) => conv.fate === 'scorched')
+      .forEach((scorched) => {
+        const tile = game.overworld.hexes.get(scorched.key);
+        if (!tile) return;
+        const scorchedHex = scorched.hex || parseKey(scorched.key);
+        let best = null;
+        rebelLookup.forEach((camp) => {
+          const distance = hexDistanceBetween(scorchedHex, camp.hex);
+          if (
+            !best ||
+            distance < best.distance ||
+            (distance === best.distance && camp.key < best.key)
+          ) {
+            best = { key: camp.key, distance };
+          }
+        });
+        if (best?.key) {
+          tile.scorchedBy = best.key;
+          game.overworld.hexes.set(scorched.key, tile);
         }
-        return false;
-    };
+      });
+  }
 
-    const convertTileToPenalty = (key, fateOverride) => {
-        const tile = game.overworld.hexes.get(key) || { hex: parseKey(key) };
-        const fate = fateOverride || (Math.random() < 0.65 ? 'rebelcamp' : 'scorched');
-        const previousType = tile.type;
-        if (fate === 'rebelcamp') {
-            tile.type = 'rebelcamp';
-            if (!tile.prevType && previousType && previousType !== 'rebelcamp') {
-                tile.prevType = previousType;
-            }
-            tile.rebelSpreadMisses = 0;
-            if (tile.scorchedBy) delete tile.scorchedBy;
-        } else {
-            tile.type = 'scorched';
-            if (!tile.prevType && previousType && previousType !== 'scorched') {
-                tile.prevType = previousType;
-            }
-            if (tile.rebelSpreadMisses !== undefined) delete tile.rebelSpreadMisses;
-        }
-        tile.owner = fate === 'rebelcamp' ? 'rebel' : fate;
-        tile.hex = tile.hex || parseKey(key);
-        tile.isRebelCamp = fate === 'rebelcamp';
-        game.overworld.hexes.set(key, tile);
-        return { key, fate, hex: tile.hex };
-    };
-
-    const conversions = [];
-
-    let lost = 0;
-    while (lost < count && removableKeys.size > 0) {
-        const frontier = [...removableKeys].filter((k) => isFrontierKey(k));
-        const pool = frontier.length > 0 ? frontier : [...removableKeys];
-
-        const sortedPool = pool
-            .map((k) => ({ key: k, hex: parseKey(k) }))
-            .sort((a, b) => {
-                const distDelta = hexDistance(b.hex) - hexDistance(a.hex);
-                if (distDelta !== 0) return distDelta;
-                return a.key.localeCompare(b.key);
-            });
-        const keyToRemove = sortedPool[0].key;
-
-        // Ensure the first (farthest) loss always burns to provide a deterministic anchor.
-        const fateOverride = conversions.length === 0 ? 'scorched' : null;
-
-        conversions.push(convertTileToPenalty(keyToRemove, fateOverride));
-        removableKeys.delete(keyToRemove);
-        currentKeys.delete(keyToRemove);
-        lost++;
-    }
-
-    game.calcOverworldGhosts();
-    if (typeof game.refreshClusterBonuses === 'function') {
-        game.refreshClusterBonuses();
-    }
-
-    const counts = conversions.reduce(
-        (tally, conv) => ({ ...tally, [conv.fate]: (tally[conv.fate] || 0) + 1 }),
-        { scorched: 0, rebelcamp: 0 }
-    );
-
-    const rebelCamps = conversions.filter((conv) => conv.fate === 'rebelcamp');
-    if (rebelCamps.length) {
-        const rebelLookup = rebelCamps.map((camp) => ({
-            key: camp.key,
-            hex: camp.hex || parseKey(camp.key)
-        }));
-        conversions
-            .filter((conv) => conv.fate === 'scorched')
-            .forEach((scorched) => {
-                const tile = game.overworld.hexes.get(scorched.key);
-                if (!tile) return;
-                const scorchedHex = scorched.hex || parseKey(scorched.key);
-                let best = null;
-                rebelLookup.forEach((camp) => {
-                    const distance = hexDistanceBetween(scorchedHex, camp.hex);
-                    if (!best || distance < best.distance || (distance === best.distance && camp.key < best.key)) {
-                        best = { key: camp.key, distance };
-                    }
-                });
-                if (best?.key) {
-                    tile.scorchedBy = best.key;
-                    game.overworld.hexes.set(scorched.key, tile);
-                }
-            });
-    }
-
-    return {
-        lost,
-        conversions,
-        counts,
-        convertedKeys: new Set(conversions.map((conv) => conv.key))
-    };
+  return {
+    lost,
+    conversions,
+    counts,
+    convertedKeys: new Set(conversions.map((conv) => conv.key)),
+  };
 }
 
 /**
@@ -1074,13 +1134,15 @@ export function loseOverworldHexes(game, count, protectedKeys = new Set()) {
  * @returns {string} formatted summary sentence.
  */
 export function formatLossSummary(outcomeLabel, lossReport = { counts: {} }) {
-    const counts = lossReport.counts || {};
-    const segments = [];
-    if (counts.scorched) segments.push(`${counts.scorched} tile${counts.scorched === 1 ? '' : 's'} scorched`);
-    if (counts.rebelcamp) segments.push(`${counts.rebelcamp} rebel camp${counts.rebelcamp === 1 ? '' : 's'} entrenched`);
-    const baseLabel = outcomeLabel || 'Outcome';
-    const prefix = `${baseLabel[0].toUpperCase()}${baseLabel.slice(1).toLowerCase()}`;
-    return segments.length > 0 ? `${prefix}: ${segments.join(', ')}` : `${prefix}: No land lost`;
+  const counts = lossReport.counts || {};
+  const segments = [];
+  if (counts.scorched)
+    segments.push(`${counts.scorched} tile${counts.scorched === 1 ? '' : 's'} scorched`);
+  if (counts.rebelcamp)
+    segments.push(`${counts.rebelcamp} rebel camp${counts.rebelcamp === 1 ? '' : 's'} entrenched`);
+  const baseLabel = outcomeLabel || 'Outcome';
+  const prefix = `${baseLabel[0].toUpperCase()}${baseLabel.slice(1).toLowerCase()}`;
+  return segments.length > 0 ? `${prefix}: ${segments.join(', ')}` : `${prefix}: No land lost`;
 }
 
 /**
@@ -1091,10 +1153,10 @@ export function formatLossSummary(outcomeLabel, lossReport = { counts: {} }) {
  * @returns {number} gold to deduct.
  */
 function computeDefeatGoldPenalty(game) {
-    const availableGold = Math.max(0, Math.floor(game.gold || 0));
-    const percentPenalty = Math.floor(availableGold * 0.15);
-    const flatPenalty = 10;
-    return Math.min(availableGold, Math.max(percentPenalty, flatPenalty));
+  const availableGold = Math.max(0, Math.floor(game.gold || 0));
+  const percentPenalty = Math.floor(availableGold * 0.15);
+  const flatPenalty = 10;
+  return Math.min(availableGold, Math.max(percentPenalty, flatPenalty));
 }
 
 /**
@@ -1104,19 +1166,19 @@ function computeDefeatGoldPenalty(game) {
  * @param {{conversions:Array<{hex:object, fate:string}>}} lossReport description of converted tiles.
  */
 function flashOverworldLosses(game, lossReport = { conversions: [] }) {
-    const { conversions = [] } = lossReport;
-    if (!Array.isArray(conversions) || conversions.length === 0) return;
+  const { conversions = [] } = lossReport;
+  if (!Array.isArray(conversions) || conversions.length === 0) return;
 
-    conversions.forEach(({ hex, fate }) => {
-        if (!hex || typeof game.projectHexToScreen !== 'function') return;
-        const pos = game.projectHexToScreen(hex);
-        if (!pos) return;
+  conversions.forEach(({ hex, fate }) => {
+    if (!hex || typeof game.projectHexToScreen !== 'function') return;
+    const pos = game.projectHexToScreen(hex);
+    if (!pos) return;
 
-        const colors = fate === 'rebelcamp' ? ['#ef476f', '#ffd166'] : ['#9ca3af', '#6b7280'];
-        game.spawnParticleBurst?.(pos.x, pos.y, 6, colors);
-        const label = fate === 'rebelcamp' ? 'Rebel Camp' : 'Scorched';
-        game.showFloatingText?.(pos.x, pos.y, label, 'alert-text');
-    });
+    const colors = fate === 'rebelcamp' ? ['#ef476f', '#ffd166'] : ['#9ca3af', '#6b7280'];
+    game.spawnParticleBurst?.(pos.x, pos.y, 6, colors);
+    const label = fate === 'rebelcamp' ? 'Rebel Camp' : 'Scorched';
+    game.showFloatingText?.(pos.x, pos.y, label, 'alert-text');
+  });
 }
 
 /**
@@ -1127,145 +1189,146 @@ function flashOverworldLosses(game, lossReport = { conversions: [] }) {
  * @param {object} [hexImpl] optional Hex implementation for summary text anchors.
  */
 export function endWar(game, outcome, clickEvt, hexImpl) {
-    const Hex = resolveHex(game, hexImpl);
-    const mandatesApi = resolveImperialMandates();
-    const rebelSystem = RebelSystem;
-    const emitNarrative = (eventType, payload) => {
-        try {
-            game?.narrative?.emit?.(eventType, payload);
-        } catch (error) {
-            // Narrative dispatch should never block war resolution.
-        }
-    };
-    const goldBefore = Math.max(0, Math.floor(game?.gold || 0));
-    const woodBefore = Math.max(0, Math.floor(game?.wood || 0));
-    game.state = 'OVERWORLD';
-    const anchorX = clickEvt ? clickEvt.clientX : window.innerWidth * 0.5;
-    const anchorY = clickEvt ? clickEvt.clientY : window.innerHeight * 0.18;
-    const normalizedOutcome = (outcome || '').toLowerCase();
-    let result = outcome;
-    const targetTile = game.pendingClearTile;
-    const targetKey = game.pendingClearTileKey || targetTile?.hex?.toString?.() || targetTile?.toString?.();
-    const protectedTargets = targetKey ? new Set([targetKey]) : new Set();
-    const mandateProtected = mandatesApi?.getProtectedOverworldKeys?.() || new Set();
-    mandateProtected.forEach((k) => protectedTargets.add(k));
-    const overworldHexes = game?.overworld?.hexes;
-    const overworldTile = targetKey ? overworldHexes?.get?.(targetKey) : null;
-    const resolvedTargetTile = overworldTile || targetTile;
-    const warStartedAgainstRebel = typeof game.pendingClearTileWasRebel === 'boolean'
-        ? game.pendingClearTileWasRebel
-        : Boolean(rebelSystem?.isRebelCampTile?.(resolvedTargetTile));
+  const Hex = resolveHex(game, hexImpl);
+  const mandatesApi = resolveImperialMandates();
+  const rebelSystem = RebelSystem;
+  const emitNarrative = (eventType, payload) => {
+    try {
+      game?.narrative?.emit?.(eventType, payload);
+    } catch (error) {
+      // Narrative dispatch should never block war resolution.
+    }
+  };
+  const goldBefore = Math.max(0, Math.floor(game?.gold || 0));
+  const woodBefore = Math.max(0, Math.floor(game?.wood || 0));
+  game.state = 'OVERWORLD';
+  const anchorX = clickEvt ? clickEvt.clientX : window.innerWidth * 0.5;
+  const anchorY = clickEvt ? clickEvt.clientY : window.innerHeight * 0.18;
+  const normalizedOutcome = (outcome || '').toLowerCase();
+  let result = outcome;
+  const targetTile = game.pendingClearTile;
+  const targetKey =
+    game.pendingClearTileKey || targetTile?.hex?.toString?.() || targetTile?.toString?.();
+  const protectedTargets = targetKey ? new Set([targetKey]) : new Set();
+  const mandateProtected = mandatesApi?.getProtectedOverworldKeys?.() || new Set();
+  mandateProtected.forEach((k) => protectedTargets.add(k));
+  const overworldHexes = game?.overworld?.hexes;
+  const overworldTile = targetKey ? overworldHexes?.get?.(targetKey) : null;
+  const resolvedTargetTile = overworldTile || targetTile;
+  const warStartedAgainstRebel =
+    typeof game.pendingClearTileWasRebel === 'boolean'
+      ? game.pendingClearTileWasRebel
+      : Boolean(rebelSystem?.isRebelCampTile?.(resolvedTargetTile));
 
-    window.exitCombat?.(normalizedOutcome);
+  window.exitCombat?.(normalizedOutcome);
 
-    if(outcome === 'DEFEAT' && game.research.lives > 0) {
-        game.research.lives -= 1;
-        result = 'REVIVE';
+  if (outcome === 'DEFEAT' && game.research.lives > 0) {
+    game.research.lives -= 1;
+    result = 'REVIVE';
+  }
+
+  if (mandatesApi?.handleBattleOutcome) {
+    mandatesApi.handleBattleOutcome(result, resolvedTargetTile, game);
+  }
+
+  if (result === 'VICTORY') {
+    const cal = game.timekeeper?.getCalendar?.();
+    const eraBonus = Math.floor(((cal?.month || 1) - 1) / 3);
+    const rewardMultiplier = computeWarRewardMultiplier(game.combat?.warElapsedMs || 0);
+    const enemyLevel = resolveEnemyLevel(game);
+    const goldReward = Math.floor((40 + enemyLevel * 10 + eraBonus * 5) * rewardMultiplier);
+    const woodReward = Math.floor((50 + enemyLevel * 8 + eraBonus * 5) * rewardMultiplier);
+    const { net: taxedGoldReward, tax: victoryTax } = applyRoyalWarTax(goldReward);
+
+    if (victoryTax > 0) {
+      game.spawnTxt(new Hex(0, 0), `-${victoryTax}g royal levy`, '#fbbf24');
+      game.showFloatingText(anchorX, anchorY, `Royal levy ${victoryTax}g`, 'alert-text');
+      emitNarrative('war_tax_applied', { tax: victoryTax, net: taxedGoldReward });
     }
 
-    if (mandatesApi?.handleBattleOutcome) {
-        mandatesApi.handleBattleOutcome(result, resolvedTargetTile, game);
+    game.gold += taxedGoldReward;
+    game.wood += woodReward;
+    game.spawnTxt(new Hex(0, 0), `VICTORY +${taxedGoldReward}g +${woodReward}w`, '#fff');
+    game.showFloatingText(anchorX, anchorY, 'Victory!', 'gold-text');
+
+    // Clearing rebel pressure should convert the tile back into normal terrain.
+    const resolvedTile = resolvedTargetTile;
+    const shouldRestoreRebel = warStartedAgainstRebel && resolvedTile;
+    if (warStartedAgainstRebel) {
+      const currentWins = resolveWarLevel(game);
+      // Enemy level now scales strictly with rebel camp victories (wars won).
+      game.stats.warsWon = currentWins + 1;
     }
-
-    if(result === 'VICTORY') {
-        const cal = game.timekeeper?.getCalendar?.();
-        const eraBonus = Math.floor(((cal?.month || 1) - 1) / 3);
-        const rewardMultiplier = computeWarRewardMultiplier(game.combat?.warElapsedMs || 0);
-        const enemyLevel = resolveEnemyLevel(game);
-        const goldReward = Math.floor((40 + (enemyLevel * 10) + (eraBonus * 5)) * rewardMultiplier);
-        const woodReward = Math.floor((50 + (enemyLevel * 8) + (eraBonus * 5)) * rewardMultiplier);
-        const { net: taxedGoldReward, tax: victoryTax } = applyRoyalWarTax(goldReward);
-
-        if (victoryTax > 0) {
-            game.spawnTxt(new Hex(0,0), `-${victoryTax}g royal levy`, '#fbbf24');
-            game.showFloatingText(anchorX, anchorY, `Royal levy ${victoryTax}g`, 'alert-text');
-            emitNarrative('war_tax_applied', { tax: victoryTax, net: taxedGoldReward });
-        }
-
-        game.gold += taxedGoldReward;
-        game.wood += woodReward;
-        game.spawnTxt(new Hex(0,0), `VICTORY +${taxedGoldReward}g +${woodReward}w`, '#fff');
-        game.showFloatingText(anchorX, anchorY, 'Victory!', 'gold-text');
-
-        // Clearing rebel pressure should convert the tile back into normal terrain.
-        const resolvedTile = resolvedTargetTile;
-        const shouldRestoreRebel = warStartedAgainstRebel && resolvedTile;
-        if (warStartedAgainstRebel) {
-            const currentWins = resolveWarLevel(game);
-            // Enemy level now scales strictly with rebel camp victories (wars won).
-            game.stats.warsWon = currentWins + 1;
-        }
     if (shouldRestoreRebel) {
-        const restoredTile = rebelSystem?.restoreRebelTile?.(resolvedTile, game);
-        const restoredKey = restoredTile?.hex?.toString?.() || restoredTile?.toString?.();
-        const selectedKey = game.selectedOverworldTile?.hex?.toString?.() || game.selectedOverworldTile?.toString?.();
-            if (restoredTile && restoredKey && selectedKey && restoredKey === selectedKey) {
-                if (typeof game.setSelectedOverworldTile === 'function') {
-                    game.setSelectedOverworldTile(restoredTile);
-                } else {
-                    game.selectedOverworldTile = restoredTile;
-                }
-            }
-            if (typeof game.refreshClusterBonuses === 'function') {
-                game.refreshClusterBonuses();
-            }
-            if (mandatesApi?.handleTileCleared) {
-                mandatesApi.handleTileCleared(restoredTile || resolvedTile, game, undefined, targetKey);
-            }
-            if (restoredTile) {
-                emitNarrative('rebel_camp_cleared', {
-                    hex: restoredTile?.hex,
-                    hexKey: restoredKey,
-                    tileType: restoredTile?.type
-                });
-            }
-            if (targetKey) {
-                restoreScorchedTilesByRebelCamp(game, targetKey);
-            }
+      const restoredTile = rebelSystem?.restoreRebelTile?.(resolvedTile, game);
+      const restoredKey = restoredTile?.hex?.toString?.() || restoredTile?.toString?.();
+      const selectedKey =
+        game.selectedOverworldTile?.hex?.toString?.() || game.selectedOverworldTile?.toString?.();
+      if (restoredTile && restoredKey && selectedKey && restoredKey === selectedKey) {
+        if (typeof game.setSelectedOverworldTile === 'function') {
+          game.setSelectedOverworldTile(restoredTile);
+        } else {
+          game.selectedOverworldTile = restoredTile;
         }
+      }
+      if (typeof game.refreshClusterBonuses === 'function') {
+        game.refreshClusterBonuses();
+      }
+      if (mandatesApi?.handleTileCleared) {
+        mandatesApi.handleTileCleared(restoredTile || resolvedTile, game, undefined, targetKey);
+      }
+      if (restoredTile) {
+        emitNarrative('rebel_camp_cleared', {
+          hex: restoredTile?.hex,
+          hexKey: restoredKey,
+          tileType: restoredTile?.type,
+        });
+      }
+      if (targetKey) {
+        restoreScorchedTilesByRebelCamp(game, targetKey);
+      }
     }
-    else if(result === 'DEFEAT') {
-        const goldPenalty = computeDefeatGoldPenalty(game);
-        if (goldPenalty > 0) {
-            game.gold -= goldPenalty;
-            game.spawnTxt(new Hex(0,0), `-${goldPenalty}g pillaged`, '#f55');
-            game.showFloatingText(anchorX, anchorY, `Lost ${goldPenalty}g`, 'alert-text');
-        }
-
-        const { net: goldAfterTax, tax: defeatTax } = applyRoyalWarTax(game.gold);
-        if (defeatTax > 0) {
-            game.gold = goldAfterTax;
-            game.spawnTxt(new Hex(0,0), `-${defeatTax}g royal levy`, '#fbbf24');
-            game.showFloatingText(anchorX, anchorY, `Royal levy ${defeatTax}g`, 'alert-text');
-            emitNarrative('war_tax_applied', { tax: defeatTax, net: goldAfterTax });
-        }
-
-        const losses = loseOverworldHexes(game, Math.floor(Math.random()*6)+5, protectedTargets); // 5-10
-        game.spawnTxt(new Hex(0,0), "CRUSHED...", '#f55');
-        setTimeout(() => game.spawnTxt(new Hex(0,0), `-${losses.lost} LAND LOST`, '#f55'), 1500);
-        flashOverworldLosses(game, losses);
-        game.showFloatingText(anchorX, anchorY, formatLossSummary('Defeat', losses), 'alert-text');
-    }
-    else if(result === 'RETREAT') {
-        const losses = loseOverworldHexes(game, Math.floor(Math.random()*5)+1, protectedTargets); // 1-5
-        game.spawnTxt(new Hex(0,0), "FLED...", '#aaa');
-        setTimeout(() => game.spawnTxt(new Hex(0,0), `-${losses.lost} LAND LOST`, '#f55'), 1500);
-        flashOverworldLosses(game, losses);
-        game.showFloatingText(anchorX, anchorY, formatLossSummary('Retreat', losses), 'alert-text');
+  } else if (result === 'DEFEAT') {
+    const goldPenalty = computeDefeatGoldPenalty(game);
+    if (goldPenalty > 0) {
+      game.gold -= goldPenalty;
+      game.spawnTxt(new Hex(0, 0), `-${goldPenalty}g pillaged`, '#f55');
+      game.showFloatingText(anchorX, anchorY, `Lost ${goldPenalty}g`, 'alert-text');
     }
 
-    recordWarEnd(game, result);
-    emitNarrative('war_outcome', {
-        outcome: result,
-        goldDelta: Math.floor((game?.gold || 0) - goldBefore),
-        woodDelta: Math.floor((game?.wood || 0) - woodBefore),
-        warElapsedMs: Math.max(0, Math.floor(game?.combat?.warElapsedMs || 0))
-    });
+    const { net: goldAfterTax, tax: defeatTax } = applyRoyalWarTax(game.gold);
+    if (defeatTax > 0) {
+      game.gold = goldAfterTax;
+      game.spawnTxt(new Hex(0, 0), `-${defeatTax}g royal levy`, '#fbbf24');
+      game.showFloatingText(anchorX, anchorY, `Royal levy ${defeatTax}g`, 'alert-text');
+      emitNarrative('war_tax_applied', { tax: defeatTax, net: goldAfterTax });
+    }
 
-    document.getElementById('ui-overworld').classList.add('visible');
-    document.getElementById('ui-combat').classList.remove('visible');
-    document.getElementById('state-txt').innerText = "KINGDOM";
-    game.hideWarTip();
-    game.updateHUD();
-    game.armAmbientLoop();
+    const losses = loseOverworldHexes(game, Math.floor(Math.random() * 6) + 5, protectedTargets); // 5-10
+    game.spawnTxt(new Hex(0, 0), 'CRUSHED...', '#f55');
+    setTimeout(() => game.spawnTxt(new Hex(0, 0), `-${losses.lost} LAND LOST`, '#f55'), 1500);
+    flashOverworldLosses(game, losses);
+    game.showFloatingText(anchorX, anchorY, formatLossSummary('Defeat', losses), 'alert-text');
+  } else if (result === 'RETREAT') {
+    const losses = loseOverworldHexes(game, Math.floor(Math.random() * 5) + 1, protectedTargets); // 1-5
+    game.spawnTxt(new Hex(0, 0), 'FLED...', '#aaa');
+    setTimeout(() => game.spawnTxt(new Hex(0, 0), `-${losses.lost} LAND LOST`, '#f55'), 1500);
+    flashOverworldLosses(game, losses);
+    game.showFloatingText(anchorX, anchorY, formatLossSummary('Retreat', losses), 'alert-text');
+  }
+
+  recordWarEnd(game, result);
+  emitNarrative('war_outcome', {
+    outcome: result,
+    goldDelta: Math.floor((game?.gold || 0) - goldBefore),
+    woodDelta: Math.floor((game?.wood || 0) - woodBefore),
+    warElapsedMs: Math.max(0, Math.floor(game?.combat?.warElapsedMs || 0)),
+  });
+
+  document.getElementById('ui-overworld').classList.add('visible');
+  document.getElementById('ui-combat').classList.remove('visible');
+  document.getElementById('state-txt').innerText = 'KINGDOM';
+  game.hideWarTip();
+  game.updateHUD();
+  game.armAmbientLoop();
 }

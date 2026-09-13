@@ -12,32 +12,33 @@
  * @returns {{mask:Set<string>|Array<string>|Map<string, *>, maskType:string, frontierOnly:boolean, context:Object}|null}
  */
 export function resolveVisibilityMask(options = {}, context = {}) {
-    const { tileMask, tileMaskProvider, frontierOnly = false, onMaskResolved } = options;
-    const maskType = frontierOnly ? 'frontier' : 'unexplored';
+  const { tileMask, tileMaskProvider, frontierOnly = false, onMaskResolved } = options;
+  const maskType = frontierOnly ? 'frontier' : 'unexplored';
 
-    const mask = typeof tileMaskProvider === 'function'
-        ? tileMaskProvider({ ...context, frontierOnly, maskType })
-        : tileMask;
+  const mask =
+    typeof tileMaskProvider === 'function'
+      ? tileMaskProvider({ ...context, frontierOnly, maskType })
+      : tileMask;
 
-    const payload = mask ? { mask, maskType, frontierOnly: !!frontierOnly, context } : null;
+  const payload = mask ? { mask, maskType, frontierOnly: !!frontierOnly, context } : null;
 
-    if (payload && typeof onMaskResolved === 'function') {
-        onMaskResolved(payload);
-    }
+  if (payload && typeof onMaskResolved === 'function') {
+    onMaskResolved(payload);
+  }
 
-    return payload;
+  return payload;
 }
 
 export const TILE_VISIBILITY = {
-    UNSEEN: 'unseen',
-    SEEN: 'seen',
-    VISIBLE: 'visible'
+  UNSEEN: 'unseen',
+  SEEN: 'seen',
+  VISIBLE: 'visible',
 };
 
 const VISIBILITY_RANK = {
-    [TILE_VISIBILITY.UNSEEN]: 0,
-    [TILE_VISIBILITY.SEEN]: 1,
-    [TILE_VISIBILITY.VISIBLE]: 2
+  [TILE_VISIBILITY.UNSEEN]: 0,
+  [TILE_VISIBILITY.SEEN]: 1,
+  [TILE_VISIBILITY.VISIBLE]: 2,
 };
 
 /**
@@ -57,30 +58,30 @@ const VISIBILITY_RANK = {
  * @returns {Map<string, string>} map of tile keys to visibility state labels.
  */
 export function buildTileVisibilityMap({ overworld, claimable, combat, state = 'OVERWORLD' } = {}) {
-    const visibility = new Map();
-    const isCombat = state === 'COMBAT';
-    const promote = (key, level) => {
-        const current = visibility.get(key) || TILE_VISIBILITY.UNSEEN;
-        if (VISIBILITY_RANK[level] > VISIBILITY_RANK[current]) visibility.set(key, level);
-    };
+  const visibility = new Map();
+  const isCombat = state === 'COMBAT';
+  const promote = (key, level) => {
+    const current = visibility.get(key) || TILE_VISIBILITY.UNSEEN;
+    if (VISIBILITY_RANK[level] > VISIBILITY_RANK[current]) visibility.set(key, level);
+  };
 
-    if (!isCombat && overworld instanceof Map) {
-        overworld.forEach((_, key) => promote(key, TILE_VISIBILITY.VISIBLE));
-    }
+  if (!isCombat && overworld instanceof Map) {
+    overworld.forEach((_, key) => promote(key, TILE_VISIBILITY.VISIBLE));
+  }
 
-    if (!isCombat && claimable instanceof Map) {
-        claimable.forEach((_, key) => promote(key, TILE_VISIBILITY.SEEN));
-    }
+  if (!isCombat && claimable instanceof Map) {
+    claimable.forEach((_, key) => promote(key, TILE_VISIBILITY.SEEN));
+  }
 
-    if (isCombat && combat instanceof Map) {
-        combat.forEach((tile, key) => {
-            const owner = (tile?.owner || '').toLowerCase();
-            const status = owner === 'player' ? TILE_VISIBILITY.VISIBLE : TILE_VISIBILITY.SEEN;
-            promote(key, status);
-        });
-    }
+  if (isCombat && combat instanceof Map) {
+    combat.forEach((tile, key) => {
+      const owner = (tile?.owner || '').toLowerCase();
+      const status = owner === 'player' ? TILE_VISIBILITY.VISIBLE : TILE_VISIBILITY.SEEN;
+      promote(key, status);
+    });
+  }
 
-    return visibility;
+  return visibility;
 }
 
 /**
@@ -93,9 +94,9 @@ export function buildTileVisibilityMap({ overworld, claimable, combat, state = '
  * @returns {Array<string>} list of tile keys matching the requested states.
  */
 export function buildVisibilityMask(visibilityMap, states = [TILE_VISIBILITY.UNSEEN]) {
-    if (!(visibilityMap instanceof Map)) return [];
-    const allowed = new Set(states);
-    return Array.from(visibilityMap.entries())
-        .filter(([, state]) => allowed.has(state))
-        .map(([key]) => key);
+  if (!(visibilityMap instanceof Map)) return [];
+  const allowed = new Set(states);
+  return Array.from(visibilityMap.entries())
+    .filter(([, state]) => allowed.has(state))
+    .map(([key]) => key);
 }

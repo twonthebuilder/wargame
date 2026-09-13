@@ -3,11 +3,13 @@
 Documenting how overworld tiles react to failed wars and retreats, the visuals applied to damaged land, and how these states persist across saves and future reclamation.
 
 ## Defeat and Retreat Outcomes
+
 - **Full defeat:** The attacked frontier tile becomes **scorched**. Any connected tiles behind it that were previously claimed remain owned but do not expand visibility.
 - **Retreat:** The attacked frontier tile becomes a **rebel camp**. The tile stays visible on the map, but control reverts to a hostile rebel camp until reclaimed.
 - **Adjacency:** Neither outcome spreads to neighboring tiles automatically; only the contested hex changes state.
 
 ## Visual Treatments
+
 - **Scorched tiles:**
   - Darkened ground palette with burnt decals to distinguish from conquered land.
   - Smoke embers or subtle animated haze to imply lingering destruction.
@@ -18,6 +20,7 @@ Documenting how overworld tiles react to failed wars and retreats, the visuals a
   - HUD labels explicitly read "Rebel Camp" when hovered/selected.
 
 ## Income and Resource Rules
+
 - **Owned, intact tiles:** Provide their normal income and bonuses.
 - **Scorched tiles:**
   - Produce **no income** until reclaimed and rebuilt.
@@ -27,6 +30,7 @@ Documenting how overworld tiles react to failed wars and retreats, the visuals a
   - On reclamation, income resumes immediately with previous upgrades intact unless explicitly destroyed by the scenario.
 
 ## Persistence and Reclamation
+
 - **Saving/Loading:** Tile states (scorched or rebel camp) are serialized with the overworld snapshot, so save/load cycles preserve damage and ownership loss.
 - **Auto-save hooks:** Defeat or retreat triggers the same snapshot routine used for victories to avoid losing aftermath state.
 - **Reclaiming tiles:** Winning a subsequent battle on the affected tile restores ownership. The tile reverts to the normal visual set, income resumes per its upgrades, and the scorched/rebel flags are cleared in the next save snapshot.

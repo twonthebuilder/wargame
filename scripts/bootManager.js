@@ -4,20 +4,20 @@
  * synchronize overlays, audio guards, and notification blockers.
  */
 const BOOT_PHASES = Object.freeze({
-    LOADING: 'LOADING',
-    INTRO: 'INTRO',
-    READY: 'READY'
+  LOADING: 'LOADING',
+  INTRO: 'INTRO',
+  READY: 'READY',
 });
 
 const bootState = {
-    phase: BOOT_PHASES.LOADING,
-    bootOverlay: null,
-    introOverlay: null,
-    audioManager: null,
-    debugEl: null,
-    debugToggles: null,
-    awaitingAcknowledgement: false,
-    listeners: new Set()
+  phase: BOOT_PHASES.LOADING,
+  bootOverlay: null,
+  introOverlay: null,
+  audioManager: null,
+  debugEl: null,
+  debugToggles: null,
+  awaitingAcknowledgement: false,
+  listeners: new Set(),
 };
 
 /**
@@ -31,58 +31,64 @@ const bootState = {
  * @param {object|null} [dependencies.debugToggles] debug toggle flag map.
  */
 function registerBootDependencies(dependencies = {}) {
-    if (Object.prototype.hasOwnProperty.call(dependencies, 'bootOverlay')) {
-        bootState.bootOverlay = dependencies.bootOverlay;
-    }
-    if (Object.prototype.hasOwnProperty.call(dependencies, 'introOverlay')) {
-        bootState.introOverlay = dependencies.introOverlay;
-    }
-    if (Object.prototype.hasOwnProperty.call(dependencies, 'audioManager')) {
-        bootState.audioManager = dependencies.audioManager;
-    }
-    if (Object.prototype.hasOwnProperty.call(dependencies, 'debugEl')) {
-        bootState.debugEl = dependencies.debugEl;
-    }
-    if (Object.prototype.hasOwnProperty.call(dependencies, 'debugToggles')) {
-        bootState.debugToggles = dependencies.debugToggles;
-    }
+  if (Object.prototype.hasOwnProperty.call(dependencies, 'bootOverlay')) {
+    bootState.bootOverlay = dependencies.bootOverlay;
+  }
+  if (Object.prototype.hasOwnProperty.call(dependencies, 'introOverlay')) {
+    bootState.introOverlay = dependencies.introOverlay;
+  }
+  if (Object.prototype.hasOwnProperty.call(dependencies, 'audioManager')) {
+    bootState.audioManager = dependencies.audioManager;
+  }
+  if (Object.prototype.hasOwnProperty.call(dependencies, 'debugEl')) {
+    bootState.debugEl = dependencies.debugEl;
+  }
+  if (Object.prototype.hasOwnProperty.call(dependencies, 'debugToggles')) {
+    bootState.debugToggles = dependencies.debugToggles;
+  }
 
-    const bootOverlay = resolveBootOverlay();
-    if (bootOverlay?.setOnAcknowledged) {
-        bootOverlay.setOnAcknowledged(() => {
-            bootState.awaitingAcknowledgement = false;
-            const introOverlay = resolveIntroOverlay();
-            if (introOverlay?.active) {
-                setBootPhase(BOOT_PHASES.INTRO);
-                return;
-            }
-            setBootPhase(BOOT_PHASES.READY);
-        });
-    }
+  const bootOverlay = resolveBootOverlay();
+  if (bootOverlay?.setOnAcknowledged) {
+    bootOverlay.setOnAcknowledged(() => {
+      bootState.awaitingAcknowledgement = false;
+      const introOverlay = resolveIntroOverlay();
+      if (introOverlay?.active) {
+        setBootPhase(BOOT_PHASES.INTRO);
+        return;
+      }
+      setBootPhase(BOOT_PHASES.READY);
+    });
+  }
 }
 
 function resolveBootOverlay() {
-    return bootState.bootOverlay || (typeof globalThis !== 'undefined' ? globalThis.BootOverlay : null);
+  return (
+    bootState.bootOverlay || (typeof globalThis !== 'undefined' ? globalThis.BootOverlay : null)
+  );
 }
 
 function resolveIntroOverlay() {
-    return bootState.introOverlay || (typeof globalThis !== 'undefined' ? globalThis.IntroOverlay : null);
+  return (
+    bootState.introOverlay || (typeof globalThis !== 'undefined' ? globalThis.IntroOverlay : null)
+  );
 }
 
 function resolveAudioManager() {
-    return bootState.audioManager || (typeof globalThis !== 'undefined' ? globalThis.GameAudio : null);
+  return (
+    bootState.audioManager || (typeof globalThis !== 'undefined' ? globalThis.GameAudio : null)
+  );
 }
 
 function resolveDebugEl() {
-    if (bootState.debugEl) return bootState.debugEl;
-    if (typeof document === 'undefined') return null;
-    return document.getElementById('debug-log');
+  if (bootState.debugEl) return bootState.debugEl;
+  if (typeof document === 'undefined') return null;
+  return document.getElementById('debug-log');
 }
 
 function resolveDebugToggles() {
-    if (bootState.debugToggles) return bootState.debugToggles;
-    if (typeof globalThis === 'undefined') return null;
-    return globalThis.DebugToggles || null;
+  if (bootState.debugToggles) return bootState.debugToggles;
+  if (typeof globalThis === 'undefined') return null;
+  return globalThis.DebugToggles || null;
 }
 
 /**
@@ -91,22 +97,22 @@ function resolveDebugToggles() {
  * @returns {boolean} true when debug log output can be shown.
  */
 function shouldShowDebugLog(phase = bootState.phase) {
-    const debugToggles = resolveDebugToggles();
-    return phase === BOOT_PHASES.READY || debugToggles?.showDebugLog === true;
+  const debugToggles = resolveDebugToggles();
+  return phase === BOOT_PHASES.READY || debugToggles?.showDebugLog === true;
 }
 
 function applyDebugVisibility(phase) {
-    const debugEl = resolveDebugEl();
-    if (!debugEl) return;
-    if (!shouldShowDebugLog(phase)) {
-        if (debugEl.classList?.remove) {
-            debugEl.classList.remove('visible');
-        }
-        return;
+  const debugEl = resolveDebugEl();
+  if (!debugEl) return;
+  if (!shouldShowDebugLog(phase)) {
+    if (debugEl.classList?.remove) {
+      debugEl.classList.remove('visible');
     }
-    if (debugEl.textContent && debugEl.classList?.add) {
-        debugEl.classList.add('visible');
-    }
+    return;
+  }
+  if (debugEl.textContent && debugEl.classList?.add) {
+    debugEl.classList.add('visible');
+  }
 }
 
 /**
@@ -116,10 +122,10 @@ function applyDebugVisibility(phase) {
  * @returns {boolean} true when the overlay accepted the error.
  */
 function reportBootIssue(message) {
-    const bootOverlay = resolveBootOverlay();
-    if (!bootOverlay?.setError) return false;
-    bootOverlay.setError(message);
-    return true;
+  const bootOverlay = resolveBootOverlay();
+  if (!bootOverlay?.setError) return false;
+  bootOverlay.setError(message);
+  return true;
 }
 
 /**
@@ -127,7 +133,7 @@ function reportBootIssue(message) {
  * @returns {string} active boot phase.
  */
 function getBootPhase() {
-    return bootState.phase;
+  return bootState.phase;
 }
 
 /**
@@ -137,9 +143,9 @@ function getBootPhase() {
  * @returns {Function} unsubscribe callback to remove the listener.
  */
 function onBootPhaseChange(handler) {
-    if (typeof handler !== 'function') return () => {};
-    bootState.listeners.add(handler);
-    return () => bootState.listeners.delete(handler);
+  if (typeof handler !== 'function') return () => {};
+  bootState.listeners.add(handler);
+  return () => bootState.listeners.delete(handler);
 }
 
 /**
@@ -149,36 +155,36 @@ function onBootPhaseChange(handler) {
  * @returns {string} normalized boot phase after the update.
  */
 function setBootPhase(phase) {
-    const validPhases = Object.values(BOOT_PHASES);
-    const nextPhase = validPhases.includes(phase) ? phase : bootState.phase;
-    bootState.phase = nextPhase;
+  const validPhases = Object.values(BOOT_PHASES);
+  const nextPhase = validPhases.includes(phase) ? phase : bootState.phase;
+  bootState.phase = nextPhase;
 
-    const bootOverlay = resolveBootOverlay();
-    if (bootOverlay?.show && bootOverlay?.hide) {
-        if (nextPhase === BOOT_PHASES.LOADING) {
-            bootOverlay.show();
-        } else {
-            bootOverlay.hide();
-        }
+  const bootOverlay = resolveBootOverlay();
+  if (bootOverlay?.show && bootOverlay?.hide) {
+    if (nextPhase === BOOT_PHASES.LOADING) {
+      bootOverlay.show();
+    } else {
+      bootOverlay.hide();
     }
-    if (nextPhase === BOOT_PHASES.READY) {
-        bootOverlay?.setError?.('');
-    }
+  }
+  if (nextPhase === BOOT_PHASES.READY) {
+    bootOverlay?.setError?.('');
+  }
 
-    const introOverlay = resolveIntroOverlay();
-    if (nextPhase === BOOT_PHASES.INTRO) {
-        introOverlay?.notifyUIReady?.();
-    }
+  const introOverlay = resolveIntroOverlay();
+  if (nextPhase === BOOT_PHASES.INTRO) {
+    introOverlay?.notifyUIReady?.();
+  }
 
-    applyDebugVisibility(nextPhase);
+  applyDebugVisibility(nextPhase);
 
-    const audioManager = resolveAudioManager();
-    if (audioManager?.setUiOverlayGuard) {
-        audioManager.setUiOverlayGuard(nextPhase !== BOOT_PHASES.READY);
-    }
+  const audioManager = resolveAudioManager();
+  if (audioManager?.setUiOverlayGuard) {
+    audioManager.setUiOverlayGuard(nextPhase !== BOOT_PHASES.READY);
+  }
 
-    bootState.listeners.forEach((listener) => listener(nextPhase));
-    return nextPhase;
+  bootState.listeners.forEach((listener) => listener(nextPhase));
+  return nextPhase;
 }
 
 /**
@@ -187,38 +193,38 @@ function setBootPhase(phase) {
  * the player clicks the ready button.
  */
 function markBootReady() {
-    const bootOverlay = resolveBootOverlay();
-    bootState.awaitingAcknowledgement = Boolean(bootOverlay?.markReady);
-    bootOverlay?.markReady?.();
+  const bootOverlay = resolveBootOverlay();
+  bootState.awaitingAcknowledgement = Boolean(bootOverlay?.markReady);
+  bootOverlay?.markReady?.();
 
-    if (!bootState.awaitingAcknowledgement) {
-        const introOverlay = resolveIntroOverlay();
-        if (introOverlay?.active) {
-            setBootPhase(BOOT_PHASES.INTRO);
-        } else {
-            setBootPhase(BOOT_PHASES.READY);
-        }
+  if (!bootState.awaitingAcknowledgement) {
+    const introOverlay = resolveIntroOverlay();
+    if (introOverlay?.active) {
+      setBootPhase(BOOT_PHASES.INTRO);
+    } else {
+      setBootPhase(BOOT_PHASES.READY);
     }
+  }
 }
 
 export {
-    BOOT_PHASES,
-    getBootPhase,
-    markBootReady,
-    onBootPhaseChange,
-    registerBootDependencies,
-    reportBootIssue,
-    setBootPhase,
-    shouldShowDebugLog
+  BOOT_PHASES,
+  getBootPhase,
+  markBootReady,
+  onBootPhaseChange,
+  registerBootDependencies,
+  reportBootIssue,
+  setBootPhase,
+  shouldShowDebugLog,
 };
 
 export default {
-    BOOT_PHASES,
-    getBootPhase,
-    markBootReady,
-    onBootPhaseChange,
-    registerBootDependencies,
-    reportBootIssue,
-    shouldShowDebugLog,
-    setBootPhase
+  BOOT_PHASES,
+  getBootPhase,
+  markBootReady,
+  onBootPhaseChange,
+  registerBootDependencies,
+  reportBootIssue,
+  shouldShowDebugLog,
+  setBootPhase,
 };

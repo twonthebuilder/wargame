@@ -1,35 +1,37 @@
 function createNoopBus() {
-    return {
-        enabled: false,
-        sources: new Map(),
+  return {
+    enabled: false,
+    sources: new Map(),
+    intendedTrack: 'None',
+    masterVolume: 1,
+    boundNodes: new WeakSet(),
+    blockedPlays: [],
+    groupedClusters: new Map(),
+    reportIntent() {},
+    registerPlayback() {},
+    unregisterPlayback() {},
+    reportPlaybackFailure() {},
+    reportGroupedPlayback() {},
+    snapshot() {
+      return {
         intendedTrack: 'None',
-        masterVolume: 1,
-        boundNodes: new WeakSet(),
+        masterVolume: this.masterVolume,
+        activeSources: [],
         blockedPlays: [],
-        groupedClusters: new Map(),
-        reportIntent() {},
-        registerPlayback() {},
-        unregisterPlayback() {},
-        reportPlaybackFailure() {},
-        reportGroupedPlayback() {},
-        snapshot() {
-            return {
-                intendedTrack: 'None',
-                masterVolume: this.masterVolume,
-                activeSources: [],
-                blockedPlays: [],
-                groupedClusters: []
-            };
-        }
-    };
+        groupedClusters: [],
+      };
+    },
+  };
 }
 
 /** Determine whether the debug bus should be hydrated for the current runtime. */
 function shouldEnableAudioDebugBus() {
-    const envToggle = typeof process !== 'undefined' && process?.env?.AUDIO_DEBUG_BUS === 'true';
-    const windowToggle = typeof window !== 'undefined'
-        && (window.DebugToggles?.audioDebugBus === true || window.DebugToggles?.enableAudioDebugBus === true);
-    return Boolean(envToggle || windowToggle);
+  const envToggle = typeof process !== 'undefined' && process?.env?.AUDIO_DEBUG_BUS === 'true';
+  const windowToggle =
+    typeof window !== 'undefined' &&
+    (window.DebugToggles?.audioDebugBus === true ||
+      window.DebugToggles?.enableAudioDebugBus === true);
+  return Boolean(envToggle || windowToggle);
 }
 
 const AudioDebugBus = createNoopBus();
@@ -41,9 +43,9 @@ let hydratePromise = null;
  * @returns {Promise<Object>} Promise that resolves to the hydrated audio debug bus.
  */
 function hydrateDebugBus() {
-    if (AudioDebugBus.enabled) return Promise.resolve(AudioDebugBus);
-    if (!shouldEnableAudioDebugBus()) return Promise.resolve(AudioDebugBus);
-    return enableAudioDebugBus();
+  if (AudioDebugBus.enabled) return Promise.resolve(AudioDebugBus);
+  if (!shouldEnableAudioDebugBus()) return Promise.resolve(AudioDebugBus);
+  return enableAudioDebugBus();
 }
 
 /**
@@ -51,22 +53,22 @@ function hydrateDebugBus() {
  * @returns {Promise<Object>} Promise that resolves to the hydrated audio debug bus.
  */
 function enableAudioDebugBus() {
-    if (AudioDebugBus.enabled) return Promise.resolve(AudioDebugBus);
-    if (hydratePromise) return hydratePromise;
+  if (AudioDebugBus.enabled) return Promise.resolve(AudioDebugBus);
+  if (hydratePromise) return hydratePromise;
 
-    hydratePromise = import('./debugBus.dev.js')
-        .then(({ createAudioDebugBus, registerGlobalAudioDebugBus }) => {
-            const realBus = createAudioDebugBus();
-            Object.assign(AudioDebugBus, realBus, { enabled: true });
-            registerGlobalAudioDebugBus(AudioDebugBus);
-            return AudioDebugBus;
-        })
-        .catch(() => AudioDebugBus)
-        .finally(() => {
-            hydratePromise = null;
-        });
+  hydratePromise = import('./debugBus.dev.js')
+    .then(({ createAudioDebugBus, registerGlobalAudioDebugBus }) => {
+      const realBus = createAudioDebugBus();
+      Object.assign(AudioDebugBus, realBus, { enabled: true });
+      registerGlobalAudioDebugBus(AudioDebugBus);
+      return AudioDebugBus;
+    })
+    .catch(() => AudioDebugBus)
+    .finally(() => {
+      hydratePromise = null;
+    });
 
-    return hydratePromise;
+  return hydratePromise;
 }
 
 hydrateDebugBus();

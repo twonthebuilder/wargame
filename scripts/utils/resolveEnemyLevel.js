@@ -6,9 +6,11 @@
  * @returns {number} normalized enemy level for UI and scaling.
  */
 export function resolveEnemyLevel(game) {
-    const warsWonValue = Number.isFinite(game?.stats?.warsWon)
-        ? game.stats.warsWon
-        : (Number.isFinite(game?.difficulty) ? game.difficulty : 0);
-    const normalizedWins = Math.max(0, Math.floor(warsWonValue));
-    return Math.max(1, normalizedWins + 1);
+  const warsWonValue = Number.isFinite(game?.stats?.warsWon)
+    ? game.stats.warsWon
+    : Number.isFinite(game?.difficulty)
+      ? game.difficulty
+      : 0;
+  const normalizedWins = Math.max(0, Math.floor(warsWonValue));
+  return Math.max(1, normalizedWins + 1);
 }

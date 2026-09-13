@@ -3,6 +3,7 @@
 The `scripts/game/state.js` module centralizes pure constructors for Game state so tests and tooling can create clean snapshots without hitting the DOM, audio stack, or persistence.
 
 ## Factory Surface
+
 - `createHexFactory(sqrt3?)` / `createHexLayout(sqrt3?)`: Hex math helpers that mirror `InputHelpers` without requiring the browser runtime.
 - `buildCoreResourceState(options?)`: Seeds gold, wood, upgrades, research bonuses, and stats using the provided fallback stats template.
 - `buildOverworldState()` / `buildCombatState()`: Return fresh containers for map structures so suites do not share `Map` instances.
@@ -10,6 +11,7 @@ The `scripts/game/state.js` module centralizes pure constructors for Game state 
 - `buildTimekeeperConfig(startTick?)`: Supplies a safe config for `Timekeeper` without instantiating it.
 
 ## Usage
+
 Import factories from `scripts/game/core.js` or directly from `scripts/game/state.js` when constructing headless cores:
 
 ```js

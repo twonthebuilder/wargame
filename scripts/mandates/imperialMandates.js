@@ -13,25 +13,24 @@ import ImperialMandateUIAdapter from './imperialMandatesAdapter.js';
  * @returns {Object} imperial mandates API instance.
  */
 function initImperialMandates(global = typeof window !== 'undefined' ? window : globalThis) {
-    const coreFactory = global.createImperialMandates || createImperialMandates;
-    const adapter = global.ImperialMandateUIAdapter || ImperialMandateUIAdapter;
+  const coreFactory = global.createImperialMandates || createImperialMandates;
+  const adapter = global.ImperialMandateUIAdapter || ImperialMandateUIAdapter;
 
-    const adapterApi = adapter?.initImperialMandatesAdapter
-        ? adapter.initImperialMandatesAdapter(global)
-        : adapter;
+  const adapterApi = adapter?.initImperialMandatesAdapter
+    ? adapter.initImperialMandatesAdapter(global)
+    : adapter;
 
-    const createFn = coreFactory?.initImperialMandatesCore
-        ? coreFactory.initImperialMandatesCore(global).createImperialMandates
-        : coreFactory;
+  const createFn = coreFactory?.initImperialMandatesCore
+    ? coreFactory.initImperialMandatesCore(global).createImperialMandates
+    : coreFactory;
 
-    const api = createFn(adapterApi, global);
+  const api = createFn(adapterApi, global);
 
-    if (global) {
-        global.ImperialMandates = api;
-    }
+  if (global) {
+    global.ImperialMandates = api;
+  }
 
-    return api;
+  return api;
 }
 
 export { initImperialMandates };
-

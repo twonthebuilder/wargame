@@ -26,10 +26,10 @@ Both functions are exposed on `window.TutorialCallouts` and bound onto the `Game
 
 ```js
 TutorialCallouts.showTileCallout(game, rebelTile, {
-    title: 'By Imperial Decree:',
-    body: 'Secure the frontier before the rebels rally.',
-    buttonText: 'Understood',
-    duration: 5000,
-    onConfirm: () => TutorialCallouts.hideTileCallout()
+  title: 'By Imperial Decree:',
+  body: 'Secure the frontier before the rebels rally.',
+  buttonText: 'Understood',
+  duration: 5000,
+  onConfirm: () => TutorialCallouts.hideTileCallout(),
 });
 ```

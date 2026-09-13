@@ -44,7 +44,7 @@ for (const [, labelContent] of settingLabels) {
 }
 
 const drawerShell = html.match(/<div id="hud-drawer"[^>]*>/)?.[0];
-const drawerPanel = html.match(/<div class="hud-drawer__panel"[^>]*>/)?.[0];
+const drawerPanel = html.match(/<div\s+class="hud-drawer__panel"[^>]*>/)?.[0];
 
 assert.ok(drawerShell, 'Expected to find the HUD drawer shell.');
 assert.doesNotMatch(

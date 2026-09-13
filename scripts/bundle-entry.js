@@ -1,4 +1,11 @@
-import { Layout, SQRT3, cubeToPixel, initInputHelpers, isPointerOnDrawnHex, pixelToAxial } from './inputHelpers.js';
+import {
+  Layout,
+  SQRT3,
+  cubeToPixel,
+  initInputHelpers,
+  isPointerOnDrawnHex,
+  pixelToAxial,
+} from './inputHelpers.js';
 import { BootOverlay } from './bootOverlay.js';
 import { IntroOverlay } from './introOverlay.js';
 import { GameAudio, initAudio } from './audio.js';
@@ -23,11 +30,11 @@ import { publishBootstrapHandles } from './globalShim.js';
 const bootstrapScope = typeof window !== 'undefined' ? window : globalThis;
 
 const inputHelpers = initInputHelpers?.(bootstrapScope) || {
-    Layout,
-    SQRT3,
-    isPointerOnDrawnHex,
-    pixelToAxial,
-    cubeToPixel
+  Layout,
+  SQRT3,
+  isPointerOnDrawnHex,
+  pixelToAxial,
+  cubeToPixel,
 };
 initAudio?.(bootstrapScope);
 initJuice?.(bootstrapScope);
@@ -42,7 +49,8 @@ initTutorialCallouts?.(bootstrapScope);
 ImperialMandateCalendar?.initImperialMandateCalendar?.(bootstrapScope);
 createImperialMandates?.initImperialMandatesCore?.(bootstrapScope);
 ImperialMandateUIAdapter?.initImperialMandatesAdapter?.(bootstrapScope);
-const imperialMandateManager = ImperialMandateManager?.initImperialMandateManager?.(bootstrapScope) || ImperialMandateManager;
+const imperialMandateManager =
+  ImperialMandateManager?.initImperialMandateManager?.(bootstrapScope) || ImperialMandateManager;
 const imperialMandates = initImperialMandates?.(bootstrapScope) || null;
 const storageProbe = initStorageProbe?.(bootstrapScope) || null;
 const debugToggles = bootstrapScope?.DebugToggles || null;
@@ -54,47 +62,49 @@ const debugToggles = bootstrapScope?.DebugToggles || null;
  * @param {Document|null} doc document instance used for input listeners.
  */
 function armAudioUnlock(audioManager, doc) {
-    if (!audioManager || !doc || typeof doc.addEventListener !== 'function') return;
-    const attemptUnlock = (reason) => {
-        if (typeof audioManager.unlock === 'function') audioManager.unlock(reason);
-    };
-    ['click', 'keydown', 'touchstart'].forEach((eventName) => {
-        doc.addEventListener(eventName, () => attemptUnlock(eventName), { passive: true });
-    });
-    doc.addEventListener('visibilitychange', () => {
-        if (doc.visibilityState === 'visible') attemptUnlock('visibility');
-    });
+  if (!audioManager || !doc || typeof doc.addEventListener !== 'function') return;
+  const attemptUnlock = (reason) => {
+    if (typeof audioManager.unlock === 'function') audioManager.unlock(reason);
+  };
+  ['click', 'keydown', 'touchstart'].forEach((eventName) => {
+    doc.addEventListener(eventName, () => attemptUnlock(eventName), { passive: true });
+  });
+  doc.addEventListener('visibilitychange', () => {
+    if (doc.visibilityState === 'visible') attemptUnlock('visibility');
+  });
 }
 
 const dependencies = {
-    inputHelpers,
-    researchSystem: ResearchSystem,
-    rebelSystem: RebelSystem,
-    tutorialHandler: TutorialHandler,
-    imperialMandates,
-    imperialMandateManager,
-    platformAdapter: PlatformAdapter,
-    tutorialCallouts: TutorialCallouts,
-    introOverlay: IntroOverlay,
-    bootOverlay: BootOverlay,
-    persistence: Persistence,
-    storageProbe,
-    gameAudio: GameAudio,
-    debugToggles,
-    windowScope: bootstrapScope
+  inputHelpers,
+  researchSystem: ResearchSystem,
+  rebelSystem: RebelSystem,
+  tutorialHandler: TutorialHandler,
+  imperialMandates,
+  imperialMandateManager,
+  platformAdapter: PlatformAdapter,
+  tutorialCallouts: TutorialCallouts,
+  introOverlay: IntroOverlay,
+  bootOverlay: BootOverlay,
+  persistence: Persistence,
+  storageProbe,
+  gameAudio: GameAudio,
+  debugToggles,
+  windowScope: bootstrapScope,
 };
 
 armAudioUnlock(GameAudio, bootstrapScope?.document || null);
-const bootstrapWithDependencies = (overrides = {}) => bootstrapGame({ ...dependencies, ...overrides });
-const createGameCoreWithDependencies = (overrides = {}) => createGameCore({
+const bootstrapWithDependencies = (overrides = {}) =>
+  bootstrapGame({ ...dependencies, ...overrides });
+const createGameCoreWithDependencies = (overrides = {}) =>
+  createGameCore({
     ...overrides,
-    dependencies: { ...dependencies, ...(overrides.dependencies || {}) }
-});
+    dependencies: { ...dependencies, ...(overrides.dependencies || {}) },
+  });
 
 publishBootstrapHandles(bootstrapWithDependencies, createGameCoreWithDependencies);
 
 if (typeof window !== 'undefined') {
-    window.addEventListener('DOMContentLoaded', () => {
-        bootstrapWithDependencies();
-    });
+  window.addEventListener('DOMContentLoaded', () => {
+    bootstrapWithDependencies();
+  });
 }

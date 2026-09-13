@@ -1,488 +1,732 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HEX KINGDOM</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div id="boot-overlay" class="boot-overlay" aria-live="polite" aria-label="Loading screen">
-        <div class="boot-overlay__content">
-            <div class="boot-overlay__title">HEX KINGDOM</div>
-            <div class="boot-overlay__subtitle">War, Territory, Economy</div>
-            <div id="boot-overlay-status" class="boot-overlay__status">Preparing the frontier ...</div>
-            <div id="boot-overlay-ready-text" class="boot-overlay__ready-text">The frontier is ready, are you?</div>
-            <button id="boot-overlay-ready" class="boot-overlay__ready" type="button" disabled>Ready</button>
-            <div id="boot-overlay-error" class="boot-overlay__error" role="alert" aria-live="assertive"></div>
+      <div class="boot-overlay__content">
+        <div class="boot-overlay__title">HEX KINGDOM</div>
+        <div class="boot-overlay__subtitle">War, Territory, Economy</div>
+        <div id="boot-overlay-status" class="boot-overlay__status">Preparing the frontier ...</div>
+        <div id="boot-overlay-ready-text" class="boot-overlay__ready-text">
+          The frontier is ready, are you?
         </div>
+        <button id="boot-overlay-ready" class="boot-overlay__ready" type="button" disabled>
+          Ready
+        </button>
+        <div
+          id="boot-overlay-error"
+          class="boot-overlay__error"
+          role="alert"
+          aria-live="assertive"
+        ></div>
+      </div>
     </div>
 
-    <div id="intro-overlay" class="intro-overlay intro-hidden" aria-labelledby="intro-title" aria-describedby="intro-subtitle">
-        <h1 id="intro-title">Welcome to the Frontier Province</h1>
-        <h2 id="intro-subtitle">You are a newly appointed Imperial Steward.</h2>
-        <p id="intro-body"></p>
-        <button id="btn-intro-begin" class="intro-button" type="button">Begin</button>
+    <div
+      id="intro-overlay"
+      class="intro-overlay intro-hidden"
+      aria-labelledby="intro-title"
+      aria-describedby="intro-subtitle"
+    >
+      <h1 id="intro-title">Welcome to the Frontier Province</h1>
+      <h2 id="intro-subtitle">You are a newly appointed Imperial Steward.</h2>
+      <p id="intro-body"></p>
+      <button id="btn-intro-begin" class="intro-button" type="button">Begin</button>
     </div>
 
     <div id="game-container">
-        <canvas id="canvas"></canvas>
-        <div class="fx-layer" id="fx-layer"></div>
-        <div class="tile-action-layer" id="tile-action-layer">
-            <button class="tile-attack-button" id="tile-attack-overlay-btn" type="button">⚔️ Attack</button>
-        </div>
-        <div id="ui-root">
+      <canvas id="canvas"></canvas>
+      <div class="fx-layer" id="fx-layer"></div>
+      <div class="tile-action-layer" id="tile-action-layer">
+        <button class="tile-attack-button" id="tile-attack-overlay-btn" type="button">
+          ⚔️ Attack
+        </button>
+      </div>
+      <div id="ui-root">
         <div id="audio-debug"></div>
         <div id="debug-log"></div>
         <div id="tip-overlay"></div>
-        <button id="debug-toggle" class="debug-toggle" type="button" aria-pressed="false">Debug</button>
+        <button id="debug-toggle" class="debug-toggle" type="button" aria-pressed="false">
+          Debug
+        </button>
 
-    <div class="hud">
-        <div class="top-bar">
+        <div class="hud">
+          <div class="top-bar">
             <div class="top-bar__zones">
-                <div class="top-bar__zone top-bar__zone--left">
-                    <div class="top-bar__controls">
-                        <button class="hamburger" id="btn-sidebar-toggle" aria-label="Open command sidebar">☰</button>
-                        <div class="pause-cluster" aria-live="polite">
-                            <button class="pause-toggle" id="btn-pause" type="button" aria-pressed="false">⏸️ Pause</button>
-                            <span class="pause-indicator" id="pause-indicator">Live</span>
-                        </div>
+              <div class="top-bar__zone top-bar__zone--left">
+                <div class="top-bar__controls">
+                  <button
+                    class="hamburger"
+                    id="btn-sidebar-toggle"
+                    aria-label="Open command sidebar"
+                  >
+                    ☰
+                  </button>
+                  <div class="pause-cluster" aria-live="polite">
+                    <button class="pause-toggle" id="btn-pause" type="button" aria-pressed="false">
+                      ⏸️ Pause
+                    </button>
+                    <span class="pause-indicator" id="pause-indicator">Live</span>
+                  </div>
+                </div>
+              </div>
+              <div class="top-bar__zone top-bar__zone--middle-left">
+                <div class="resource-cluster">
+                  <div class="resource-pill">
+                    <div class="res-group">
+                      <div class="res gold"><span>💰</span><span id="gold">0</span></div>
+                      <div class="res wood"><span>🌲</span><span id="wood">0</span></div>
+                      <div class="res lives"><span>❤️</span><span id="lives-count">0</span></div>
                     </div>
+                  </div>
                 </div>
-                <div class="top-bar__zone top-bar__zone--middle-left">
-                    <div class="resource-cluster">
-                        <div class="resource-pill">
-                            <div class="res-group">
-                                <div class="res gold"><span>💰</span><span id="gold">0</span></div>
-                                <div class="res wood"><span>🌲</span><span id="wood">0</span></div>
-                                <div class="res lives"><span>❤️</span><span id="lives-count">0</span></div>
-                            </div>
-                        </div>
+              </div>
+              <div class="top-bar__zone top-bar__zone--middle">
+                <div class="status-cluster">
+                  <div
+                    class="imperial-favor imperial-status"
+                    title="Higher favor reduces taxes; lower favor increases pressure."
+                  >
+                    <div class="res enemy-level imperial-status__section">
+                      <span class="enemy-label">Enemy Lvl.</span
+                      ><span id="lvl-txt" class="enemy-value">Lv.0</span>
                     </div>
-                </div>
-                <div class="top-bar__zone top-bar__zone--middle">
-                        <div class="status-cluster">
-                            <div class="imperial-favor imperial-status" title="Higher favor reduces taxes; lower favor increases pressure.">
-                                <div class="res enemy-level imperial-status__section">
-                                    <span class="enemy-label">Enemy Lvl.</span><span id="lvl-txt" class="enemy-value">Lv.0</span>
-                                </div>
-                                <div class="imperial-status__divider" aria-hidden="true"></div>
-                                <div class="res imperial-status__section">
-                                    <span class="favor-icon">🏛️</span><span class="favor-label">Favor</span><span id="imperial-favor" class="favor-value">5</span>
-                                </div>
-                            </div>
-                        </div>
-                </div>
-                <div class="top-bar__zone top-bar__zone--right">
-                    <div class="calendar-cluster">
-                        <div class="calendar-pill" aria-live="polite">
-                            <span id="calendar-readout" class="calendar-readout">M: 1 | W: 1/5 | D: 1/40</span>
-                        </div>
-                        <div class="mandates-zone">
-                            <div class="hud-panel-anchor">
-                                <button class="mandates-button" id="btn-mandates" type="button" aria-label="Open mandates" aria-expanded="false" aria-controls="mandates-panel">
-                                    <span class="mandates-button__primary">Tasks</span>
-                                    <span class="mandates-button__secondary">Mandates</span>
-                                </button>
-                            </div>
-                            <div class="hud-panel-anchor">
-                                <button class="mandates-button mandates-button--reputation" id="btn-reputation" type="button" aria-label="Open faction standing" aria-expanded="false" aria-controls="reputation-panel">
-                                    <span class="mandates-button__primary">Factions</span>
-                                    <span class="mandates-button__secondary">Standing</span>
-                                </button>
-                            </div>
-                            <div id="mandates-panel" class="mandates-panel hud-flyout-panel" aria-hidden="true">
-                                <div class="mandates-panel__inner">
-                                    <div class="mandates-panel__header">
-                                        <div class="mandates-panel__eyebrow">Tasks</div>
-                                        <div class="mandates-panel__title">Imperial Mandates</div>
-                                        <button class="meta-btn mandates-panel__close" id="btn-mandates-close" type="button" aria-label="Close mandates panel">✕</button>
-                                    </div>
-                                    <div class="mandates-panel__body" id="mandates-panel-body">
-                                        <p class="mandates-panel__empty">No active mandates yet.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="reputation-panel" class="reputation-panel hud-flyout-panel" aria-hidden="true">
-                                <div class="reputation-panel__inner">
-                                    <div class="reputation-panel__header">
-                                        <div class="reputation-panel__eyebrow">Standing</div>
-                                        <div class="reputation-panel__title">Faction Reputation</div>
-                                        <button class="meta-btn reputation-panel__close" id="btn-reputation-close" type="button" aria-label="Close reputation panel">✕</button>
-                                    </div>
-                                    <div class="reputation-panel__body" id="reputation-panel-body">
-                                        <p class="reputation-panel__empty">Standing reports will appear here.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="imperial-status__divider" aria-hidden="true"></div>
+                    <div class="res imperial-status__section">
+                      <span class="favor-icon">🏛️</span><span class="favor-label">Favor</span
+                      ><span id="imperial-favor" class="favor-value">5</span>
                     </div>
+                  </div>
                 </div>
+              </div>
+              <div class="top-bar__zone top-bar__zone--right">
+                <div class="calendar-cluster">
+                  <div class="calendar-pill" aria-live="polite">
+                    <span id="calendar-readout" class="calendar-readout"
+                      >M: 1 | W: 1/5 | D: 1/40</span
+                    >
+                  </div>
+                  <div class="mandates-zone">
+                    <div class="hud-panel-anchor">
+                      <button
+                        class="mandates-button"
+                        id="btn-mandates"
+                        type="button"
+                        aria-label="Open mandates"
+                        aria-expanded="false"
+                        aria-controls="mandates-panel"
+                      >
+                        <span class="mandates-button__primary">Tasks</span>
+                        <span class="mandates-button__secondary">Mandates</span>
+                      </button>
+                    </div>
+                    <div class="hud-panel-anchor">
+                      <button
+                        class="mandates-button mandates-button--reputation"
+                        id="btn-reputation"
+                        type="button"
+                        aria-label="Open faction standing"
+                        aria-expanded="false"
+                        aria-controls="reputation-panel"
+                      >
+                        <span class="mandates-button__primary">Factions</span>
+                        <span class="mandates-button__secondary">Standing</span>
+                      </button>
+                    </div>
+                    <div
+                      id="mandates-panel"
+                      class="mandates-panel hud-flyout-panel"
+                      aria-hidden="true"
+                    >
+                      <div class="mandates-panel__inner">
+                        <div class="mandates-panel__header">
+                          <div class="mandates-panel__eyebrow">Tasks</div>
+                          <div class="mandates-panel__title">Imperial Mandates</div>
+                          <button
+                            class="meta-btn mandates-panel__close"
+                            id="btn-mandates-close"
+                            type="button"
+                            aria-label="Close mandates panel"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div class="mandates-panel__body" id="mandates-panel-body">
+                          <p class="mandates-panel__empty">No active mandates yet.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      id="reputation-panel"
+                      class="reputation-panel hud-flyout-panel"
+                      aria-hidden="true"
+                    >
+                      <div class="reputation-panel__inner">
+                        <div class="reputation-panel__header">
+                          <div class="reputation-panel__eyebrow">Standing</div>
+                          <div class="reputation-panel__title">Faction Reputation</div>
+                          <button
+                            class="meta-btn reputation-panel__close"
+                            id="btn-reputation-close"
+                            type="button"
+                            aria-label="Close reputation panel"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div class="reputation-panel__body" id="reputation-panel-body">
+                          <p class="reputation-panel__empty">Standing reports will appear here.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-        </div>
-        <div id="state-txt" class="sr-only" aria-live="polite">KINGDOM</div>
+          </div>
+          <div id="state-txt" class="sr-only" aria-live="polite">KINGDOM</div>
 
-        <div class="controls">
+          <div class="controls">
             <!-- Overworld UI -->
             <div id="ui-overworld" class="mode-panel visible">
-                <div class="hud-controls-anchor">
-                    <div class="hud-action-row">
-                        <div class="hud-action-row__buttons">
-                            <button class="btn btn-upg" id="btn-upg" aria-expanded="false">💪 Upgrades</button>
-                            <button class="btn btn-research" id="btn-research" aria-expanded="false">🔬 Research</button>
-                            <button class="btn btn-ultimates" id="btn-ultimates" aria-expanded="false">💥 Ultimates</button>
-                        </div>
-                        <div id="reclamation-hint" class="reclamation-hint" aria-live="polite" aria-hidden="true"></div>
-                    </div>
+              <div class="hud-controls-anchor">
+                <div class="hud-action-row">
+                  <div class="hud-action-row__buttons">
+                    <button class="btn btn-upg" id="btn-upg" aria-expanded="false">
+                      💪 Upgrades
+                    </button>
+                    <button class="btn btn-research" id="btn-research" aria-expanded="false">
+                      🔬 Research
+                    </button>
+                    <button class="btn btn-ultimates" id="btn-ultimates" aria-expanded="false">
+                      💥 Ultimates
+                    </button>
+                  </div>
+                  <div
+                    id="reclamation-hint"
+                    class="reclamation-hint"
+                    aria-live="polite"
+                    aria-hidden="true"
+                  ></div>
+                </div>
 
-                    <!-- HUD DRAWER -->
-                    <div id="hud-drawer" class="hud-drawer" aria-hidden="true">
-                        <div class="hud-drawer__panel" role="dialog" aria-modal="false" aria-labelledby="hud-drawer-title" aria-describedby="hud-drawer-subtitle">
-                            <div class="hud-drawer__header">
-                                <div class="hud-drawer__heading">
-                                    <p class="hud-drawer__eyebrow" id="hud-drawer-eyebrow">Imperial Engineering</p>
-                                    <div class="hud-drawer__title-row">
-                                        <h2 class="hud-drawer__title" id="hud-drawer-title">Imperial Upgrades</h2>
-                                        <span class="cost-badge research-pill" id="hud-drawer-lives" aria-hidden="true">❤️ 0</span>
-                                    </div>
-                                    <p class="hud-drawer__subtitle" id="hud-drawer-subtitle">Invest resources to harden defenses and accelerate production between wars.</p>
-                                </div>
-                                <button class="modal-close hud-drawer__close" id="hud-drawer-close" type="button" aria-label="Close drawer">✕</button>
-                            </div>
-                            <div class="hud-drawer__body" id="hud-drawer-body">
-                                <div id="hud-drawer-content" class="hud-drawer__content"></div>
-                            </div>
+                <!-- HUD DRAWER -->
+                <div id="hud-drawer" class="hud-drawer" aria-hidden="true">
+                  <div
+                    class="hud-drawer__panel"
+                    role="dialog"
+                    aria-modal="false"
+                    aria-labelledby="hud-drawer-title"
+                    aria-describedby="hud-drawer-subtitle"
+                  >
+                    <div class="hud-drawer__header">
+                      <div class="hud-drawer__heading">
+                        <p class="hud-drawer__eyebrow" id="hud-drawer-eyebrow">
+                          Imperial Engineering
+                        </p>
+                        <div class="hud-drawer__title-row">
+                          <h2 class="hud-drawer__title" id="hud-drawer-title">Imperial Upgrades</h2>
+                          <span
+                            class="cost-badge research-pill"
+                            id="hud-drawer-lives"
+                            aria-hidden="true"
+                            >❤️ 0</span
+                          >
                         </div>
+                        <p class="hud-drawer__subtitle" id="hud-drawer-subtitle">
+                          Invest resources to harden defenses and accelerate production between
+                          wars.
+                        </p>
+                      </div>
+                      <button
+                        class="modal-close hud-drawer__close"
+                        id="hud-drawer-close"
+                        type="button"
+                        aria-label="Close drawer"
+                      >
+                        ✕
+                      </button>
                     </div>
-                </div>
-                <div id="tile-inspector" class="tile-inspector" aria-live="polite">
-                    <div class="tile-inspector__label" id="tile-inspector-label">Select a tile to inspect</div>
-                    <div class="tile-inspector__meta" id="tile-inspector-meta">
-                        <div class="tile-inspector__bonus" id="tile-inspector-bonus">Cluster bonuses appear when you select a tile.</div>
-                        <div class="tile-inspector__adjacency" id="tile-inspector-adjacency">
-                            <div class="tile-inspector__adjacency-summary" id="tile-inspector-adjacency-summary">No adjacency bonuses yet.</div>
-                            <div class="tile-inspector__adjacency-detail" id="tile-inspector-adjacency-detail"></div>
-                        </div>
+                    <div class="hud-drawer__body" id="hud-drawer-body">
+                      <div id="hud-drawer-content" class="hud-drawer__content"></div>
                     </div>
+                  </div>
                 </div>
+              </div>
+              <div id="tile-inspector" class="tile-inspector" aria-live="polite">
+                <div class="tile-inspector__label" id="tile-inspector-label">
+                  Select a tile to inspect
+                </div>
+                <div class="tile-inspector__meta" id="tile-inspector-meta">
+                  <div class="tile-inspector__bonus" id="tile-inspector-bonus">
+                    Cluster bonuses appear when you select a tile.
+                  </div>
+                  <div class="tile-inspector__adjacency" id="tile-inspector-adjacency">
+                    <div
+                      class="tile-inspector__adjacency-summary"
+                      id="tile-inspector-adjacency-summary"
+                    >
+                      No adjacency bonuses yet.
+                    </div>
+                    <div
+                      class="tile-inspector__adjacency-detail"
+                      id="tile-inspector-adjacency-detail"
+                    ></div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Combat UI -->
             <div id="ui-combat" class="mode-panel combat-panel">
-                <button class="btn btn-retreat" id="btn-retreat">🏳️ Retreat</button>
-                <div
-                    class="combat-ultimate-hud"
-                    id="combat-ultimate-hud"
-                    data-ultimate-id="rush"
-                    aria-hidden="true"
-                    aria-label="Ultimate ability status"
+              <button class="btn btn-retreat" id="btn-retreat">🏳️ Retreat</button>
+              <div
+                class="combat-ultimate-hud"
+                id="combat-ultimate-hud"
+                data-ultimate-id="rush"
+                aria-hidden="true"
+                aria-label="Ultimate ability status"
+              >
+                <button
+                  class="ultimate-button"
+                  id="ultimate-button"
+                  type="button"
+                  aria-label="Ultimate ability"
+                  aria-disabled="true"
                 >
-                    <button
-                        class="ultimate-button"
-                        id="ultimate-button"
-                        type="button"
-                        aria-label="Ultimate ability"
-                        aria-disabled="true"
-                    >
-                        <span class="ultimate-ring" aria-hidden="true">
-                            <span class="ultimate-ring__core">
-                                <span class="ultimate-icon" id="ultimate-icon" aria-hidden="true">⚡</span>
-                            </span>
-                        </span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-inner">
-                <div class="sidebar-header">
-                    <h3>Command Sidebar</h3>
-                    <button class="meta-btn sidebar-close" id="btn-sidebar-close">✕</button>
-                </div>
-
-                <div class="sidebar-section sidebar-section--save">
-                    <div style="display:flex; align-items:center; justify-content:space-between;">
-                        <h4 style="margin:0;">Save Manager</h4>
-                        <span class="lvl-badge" id="active-slot-label">Slot 1 Active</span>
-                    </div>
-                    <div class="board-caption" id="save-status">No save stored yet.</div>
-                    <div class="save-grid">
-                        <div class="save-slot" data-slot="1">
-                            <div class="slot-details">
-                                <div class="slot-meta">Save Slot 1</div>
-                                <div class="slot-caption" data-slot-caption="1">Empty Slot</div>
-                            </div>
-                            <div class="slot-actions">
-                                <button class="meta-btn slot-save" data-slot="1">💾 Save</button>
-                                <button class="meta-btn slot-load" data-slot="1">📂 Load</button>
-                            </div>
-                        </div>
-                        <div class="save-slot" data-slot="2">
-                            <div class="slot-details">
-                                <div class="slot-meta">Save Slot 2</div>
-                                <div class="slot-caption" data-slot-caption="2">Empty Slot</div>
-                            </div>
-                            <div class="slot-actions">
-                                <button class="meta-btn slot-save" data-slot="2">💾 Save</button>
-                                <button class="meta-btn slot-load" data-slot="2">📂 Load</button>
-                            </div>
-                        </div>
-                        <div class="save-slot" data-slot="3">
-                            <div class="slot-details">
-                                <div class="slot-meta">Save Slot 3</div>
-                                <div class="slot-caption" data-slot-caption="3">Empty Slot</div>
-                            </div>
-                            <div class="slot-actions">
-                                <button class="meta-btn slot-save" data-slot="3">💾 Save</button>
-                                <button class="meta-btn slot-load" data-slot="3">📂 Load</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sidebar-section sidebar-section--settings">
-                    <h4 style="margin:0;">Settings</h4>
-                    <fieldset class="settings-group">
-                        <legend class="settings-group__label">Audio</legend>
-                        <label class="setting setting--range">
-                            <span class="setting__meta">
-                                <span>Master Volume</span>
-                                <span class="setting__value" data-audio-readout="master">100%</span>
-                            </span>
-                            <input type="range" min="0" max="100" value="100" data-audio-setting="master" aria-label="Master Volume">
-                        </label>
-                        <label class="setting setting--range">
-                            <span class="setting__meta">
-                                <span>Music Volume</span>
-                                <span class="setting__value" data-audio-readout="music">100%</span>
-                            </span>
-                            <input type="range" min="0" max="100" value="100" data-audio-setting="music" aria-label="Music Volume">
-                        </label>
-                        <label class="setting setting--range">
-                            <span class="setting__meta">
-                                <span>SFX Volume</span>
-                                <span class="setting__value" data-audio-readout="sfx">100%</span>
-                            </span>
-                            <input type="range" min="0" max="100" value="100" data-audio-setting="sfx" aria-label="Sound Effects Volume">
-                        </label>
-                    </fieldset>
-
-                    <fieldset class="settings-group">
-                        <legend class="settings-group__label">Visuals</legend>
-                        <label class="setting setting--toggle">
-                            <input type="checkbox" data-visual-toggle="snowEnabled" aria-label="Snow overlay enabled">
-                            <span>Snow Overlay</span>
-                        </label>
-                        <label class="setting setting--toggle">
-                            <input type="checkbox" data-visual-toggle="snowfallEnabled" aria-label="Seasonal snowfall enabled">
-                            <span>Seasonal Snowfall</span>
-                        </label>
-                    </fieldset>
-
-                    <fieldset class="settings-group">
-                        <legend class="settings-group__label">General</legend>
-                        <label class="setting setting--toggle">
-                            <input type="checkbox" data-general-toggle="paintToClaim" aria-label="Paint-to-claim enabled">
-                            <span>Paint-to-Claim</span>
-                        </label>
-                        <p class="setting__hint">Enable here to drag-claim frontier tiles while exploring the overworld.</p>
-                    </fieldset>
-                </div>
-
-                <div class="sidebar-section sidebar-section--scrollable">
-                    <h4 style="margin:0;">Leaderboard / Stats</h4>
-                    <div class="leaderboard-scroll settings-group leaderboard-panel">
-                        <div class="leaderboard" id="leaderboard">
-                            <div class="board-row">Highest Level <span id="stat-best-lvl">0</span></div>
-                            <div class="board-row">Best War Kills <span id="stat-best-kills">0</span></div>
-                            <div class="board-row">Total Kills <span id="stat-total-kills">0</span></div>
-                            <div class="board-row">Wars Fought <span id="stat-wars">0</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sidebar-section sidebar-section--actions">
-                    <button class="meta-btn" id="btn-reset">🧹 Reset Campaign</button>
-                </div>
-            </div>
-        </aside>
-        </div>
-    </div>
-    </div>
-
-<template id="drawer-upgrades-template">
-    <div class="card-grid upgrade-grid">
-        <article class="command-card upgrade-strip" data-upgrade-card="soldier">
-            <div class="upgrade-strip__row upgrade-row--header">
-                <h3 class="upgrade-strip__title" data-upgrade-title="soldier">Soldier Power ⚔️</h3>
-                <button class="card-btn primary-btn upg-btn upgrade-btn" data-upgrade-button="soldier" id="buy-soldier" type="button">
-                    <span class="upgrade-btn__label" data-upgrade-label="soldier">Purchase</span>
-                    <span class="upgrade-btn__cost" data-upgrade-cost="soldier">100g</span>
+                  <span class="ultimate-ring" aria-hidden="true">
+                    <span class="ultimate-ring__core">
+                      <span class="ultimate-icon" id="ultimate-icon" aria-hidden="true">⚡</span>
+                    </span>
+                  </span>
                 </button>
+              </div>
             </div>
-            <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="soldier">Sharpen drills and gear to boost your infantry squads.</p>
-            <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="soldier">Scales ×1.30 per purchase.</p>
+          </div>
+          <aside class="sidebar" id="sidebar">
+            <div class="sidebar-inner">
+              <div class="sidebar-header">
+                <h3>Command Sidebar</h3>
+                <button class="meta-btn sidebar-close" id="btn-sidebar-close">✕</button>
+              </div>
+
+              <div class="sidebar-section sidebar-section--save">
+                <div style="display: flex; align-items: center; justify-content: space-between">
+                  <h4 style="margin: 0">Save Manager</h4>
+                  <span class="lvl-badge" id="active-slot-label">Slot 1 Active</span>
+                </div>
+                <div class="board-caption" id="save-status">No save stored yet.</div>
+                <div class="save-grid">
+                  <div class="save-slot" data-slot="1">
+                    <div class="slot-details">
+                      <div class="slot-meta">Save Slot 1</div>
+                      <div class="slot-caption" data-slot-caption="1">Empty Slot</div>
+                    </div>
+                    <div class="slot-actions">
+                      <button class="meta-btn slot-save" data-slot="1">💾 Save</button>
+                      <button class="meta-btn slot-load" data-slot="1">📂 Load</button>
+                    </div>
+                  </div>
+                  <div class="save-slot" data-slot="2">
+                    <div class="slot-details">
+                      <div class="slot-meta">Save Slot 2</div>
+                      <div class="slot-caption" data-slot-caption="2">Empty Slot</div>
+                    </div>
+                    <div class="slot-actions">
+                      <button class="meta-btn slot-save" data-slot="2">💾 Save</button>
+                      <button class="meta-btn slot-load" data-slot="2">📂 Load</button>
+                    </div>
+                  </div>
+                  <div class="save-slot" data-slot="3">
+                    <div class="slot-details">
+                      <div class="slot-meta">Save Slot 3</div>
+                      <div class="slot-caption" data-slot-caption="3">Empty Slot</div>
+                    </div>
+                    <div class="slot-actions">
+                      <button class="meta-btn slot-save" data-slot="3">💾 Save</button>
+                      <button class="meta-btn slot-load" data-slot="3">📂 Load</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sidebar-section sidebar-section--settings">
+                <h4 style="margin: 0">Settings</h4>
+                <fieldset class="settings-group">
+                  <legend class="settings-group__label">Audio</legend>
+                  <label class="setting setting--range">
+                    <span class="setting__meta">
+                      <span>Master Volume</span>
+                      <span class="setting__value" data-audio-readout="master">100%</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="100"
+                      data-audio-setting="master"
+                      aria-label="Master Volume"
+                    />
+                  </label>
+                  <label class="setting setting--range">
+                    <span class="setting__meta">
+                      <span>Music Volume</span>
+                      <span class="setting__value" data-audio-readout="music">100%</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="100"
+                      data-audio-setting="music"
+                      aria-label="Music Volume"
+                    />
+                  </label>
+                  <label class="setting setting--range">
+                    <span class="setting__meta">
+                      <span>SFX Volume</span>
+                      <span class="setting__value" data-audio-readout="sfx">100%</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value="100"
+                      data-audio-setting="sfx"
+                      aria-label="Sound Effects Volume"
+                    />
+                  </label>
+                </fieldset>
+
+                <fieldset class="settings-group">
+                  <legend class="settings-group__label">Visuals</legend>
+                  <label class="setting setting--toggle">
+                    <input
+                      type="checkbox"
+                      data-visual-toggle="snowEnabled"
+                      aria-label="Snow overlay enabled"
+                    />
+                    <span>Snow Overlay</span>
+                  </label>
+                  <label class="setting setting--toggle">
+                    <input
+                      type="checkbox"
+                      data-visual-toggle="snowfallEnabled"
+                      aria-label="Seasonal snowfall enabled"
+                    />
+                    <span>Seasonal Snowfall</span>
+                  </label>
+                </fieldset>
+
+                <fieldset class="settings-group">
+                  <legend class="settings-group__label">General</legend>
+                  <label class="setting setting--toggle">
+                    <input
+                      type="checkbox"
+                      data-general-toggle="paintToClaim"
+                      aria-label="Paint-to-claim enabled"
+                    />
+                    <span>Paint-to-Claim</span>
+                  </label>
+                  <p class="setting__hint">
+                    Enable here to drag-claim frontier tiles while exploring the overworld.
+                  </p>
+                </fieldset>
+              </div>
+
+              <div class="sidebar-section sidebar-section--scrollable">
+                <h4 style="margin: 0">Leaderboard / Stats</h4>
+                <div class="leaderboard-scroll settings-group leaderboard-panel">
+                  <div class="leaderboard" id="leaderboard">
+                    <div class="board-row">Highest Level <span id="stat-best-lvl">0</span></div>
+                    <div class="board-row">Best War Kills <span id="stat-best-kills">0</span></div>
+                    <div class="board-row">Total Kills <span id="stat-total-kills">0</span></div>
+                    <div class="board-row">Wars Fought <span id="stat-wars">0</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sidebar-section sidebar-section--actions">
+                <button class="meta-btn" id="btn-reset">🧹 Reset Campaign</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <template id="drawer-upgrades-template">
+      <div class="card-grid upgrade-grid">
+        <article class="command-card upgrade-strip" data-upgrade-card="soldier">
+          <div class="upgrade-strip__row upgrade-row--header">
+            <h3 class="upgrade-strip__title" data-upgrade-title="soldier">Soldier Power ⚔️</h3>
+            <button
+              class="card-btn primary-btn upg-btn upgrade-btn"
+              data-upgrade-button="soldier"
+              id="buy-soldier"
+              type="button"
+            >
+              <span class="upgrade-btn__label" data-upgrade-label="soldier">Purchase</span>
+              <span class="upgrade-btn__cost" data-upgrade-cost="soldier">100g</span>
+            </button>
+          </div>
+          <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="soldier">
+            Sharpen drills and gear to boost your infantry squads.
+          </p>
+          <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="soldier">
+            Scales ×1.30 per purchase.
+          </p>
         </article>
 
         <article class="command-card upgrade-strip" data-upgrade-card="archer">
-            <div class="upgrade-strip__row upgrade-row--header">
-                <h3 class="upgrade-strip__title" data-upgrade-title="archer">Archer Power 🏹</h3>
-                <button class="card-btn primary-btn upg-btn upgrade-btn" data-upgrade-button="archer" id="buy-archer" type="button">
-                    <span class="upgrade-btn__label" data-upgrade-label="archer">Purchase</span>
-                    <span class="upgrade-btn__cost" data-upgrade-cost="archer">100g</span>
-                </button>
-            </div>
-            <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="archer">Upgrade fletching, bows, and drills to keep volleys lethal.</p>
-            <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="archer">Scales ×1.30 per purchase.</p>
+          <div class="upgrade-strip__row upgrade-row--header">
+            <h3 class="upgrade-strip__title" data-upgrade-title="archer">Archer Power 🏹</h3>
+            <button
+              class="card-btn primary-btn upg-btn upgrade-btn"
+              data-upgrade-button="archer"
+              id="buy-archer"
+              type="button"
+            >
+              <span class="upgrade-btn__label" data-upgrade-label="archer">Purchase</span>
+              <span class="upgrade-btn__cost" data-upgrade-cost="archer">100g</span>
+            </button>
+          </div>
+          <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="archer">
+            Upgrade fletching, bows, and drills to keep volleys lethal.
+          </p>
+          <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="archer">
+            Scales ×1.30 per purchase.
+          </p>
         </article>
 
         <article class="command-card upgrade-strip" data-upgrade-card="production">
-            <div class="upgrade-strip__row upgrade-row--header">
-                <h3 class="upgrade-strip__title" data-upgrade-title="production">Production Speed ⚡</h3>
-                <button class="card-btn primary-btn upg-btn upgrade-btn" data-upgrade-button="production" id="buy-prod" type="button">
-                    <span class="upgrade-btn__label" data-upgrade-label="production">Purchase</span>
-                    <span class="upgrade-btn__cost" data-upgrade-cost="production">150g</span>
-                </button>
-            </div>
-            <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="production">Optimize barracks output and rally timing for faster deployments.</p>
-            <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="production">Scales ×1.50 per purchase.</p>
+          <div class="upgrade-strip__row upgrade-row--header">
+            <h3 class="upgrade-strip__title" data-upgrade-title="production">
+              Production Speed ⚡
+            </h3>
+            <button
+              class="card-btn primary-btn upg-btn upgrade-btn"
+              data-upgrade-button="production"
+              id="buy-prod"
+              type="button"
+            >
+              <span class="upgrade-btn__label" data-upgrade-label="production">Purchase</span>
+              <span class="upgrade-btn__cost" data-upgrade-cost="production">150g</span>
+            </button>
+          </div>
+          <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="production">
+            Optimize barracks output and rally timing for faster deployments.
+          </p>
+          <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="production">
+            Scales ×1.50 per purchase.
+          </p>
         </article>
 
         <article class="command-card upgrade-strip" data-upgrade-card="defense">
-            <div class="upgrade-strip__row upgrade-row--header">
-                <h3 class="upgrade-strip__title" data-upgrade-title="defense">Defense Systems 🛡️</h3>
-                <button class="card-btn primary-btn upg-btn upgrade-btn" data-upgrade-button="defense" id="buy-defense" type="button">
-                    <span class="upgrade-btn__label" data-upgrade-label="defense">Purchase</span>
-                    <span class="upgrade-btn__cost" data-upgrade-cost="defense">125g</span>
-                </button>
-            </div>
-            <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="defense">Reinforce walls and keep defensive emplacements deadly.</p>
-            <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="defense">Scales ×1.40 per purchase.</p>
+          <div class="upgrade-strip__row upgrade-row--header">
+            <h3 class="upgrade-strip__title" data-upgrade-title="defense">Defense Systems 🛡️</h3>
+            <button
+              class="card-btn primary-btn upg-btn upgrade-btn"
+              data-upgrade-button="defense"
+              id="buy-defense"
+              type="button"
+            >
+              <span class="upgrade-btn__label" data-upgrade-label="defense">Purchase</span>
+              <span class="upgrade-btn__cost" data-upgrade-cost="defense">125g</span>
+            </button>
+          </div>
+          <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="defense">
+            Reinforce walls and keep defensive emplacements deadly.
+          </p>
+          <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="defense">
+            Scales ×1.40 per purchase.
+          </p>
         </article>
 
         <article class="command-card upgrade-strip" data-upgrade-card="mines">
-            <div class="upgrade-strip__row upgrade-row--header">
-                <h3 class="upgrade-strip__title" data-upgrade-title="mines">Mine Efficiency 🏭</h3>
-                <button class="card-btn primary-btn upg-btn upgrade-btn" data-upgrade-button="mines" id="buy-mines" type="button">
-                    <span class="upgrade-btn__label" data-upgrade-label="mines">Purchase</span>
-                    <span class="upgrade-btn__cost" data-upgrade-cost="mines">200g</span>
-                </button>
-            </div>
-            <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="mines">Automate ore lines to compound passive gold between assaults.</p>
-            <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="mines">Scales ×1.50 per purchase.</p>
+          <div class="upgrade-strip__row upgrade-row--header">
+            <h3 class="upgrade-strip__title" data-upgrade-title="mines">Mine Efficiency 🏭</h3>
+            <button
+              class="card-btn primary-btn upg-btn upgrade-btn"
+              data-upgrade-button="mines"
+              id="buy-mines"
+              type="button"
+            >
+              <span class="upgrade-btn__label" data-upgrade-label="mines">Purchase</span>
+              <span class="upgrade-btn__cost" data-upgrade-cost="mines">200g</span>
+            </button>
+          </div>
+          <p class="upgrade-strip__desc upgrade-row--desc" data-upgrade-description="mines">
+            Automate ore lines to compound passive gold between assaults.
+          </p>
+          <p class="upgrade-strip__scale upgrade-row--scale" data-upgrade-scale="mines">
+            Scales ×1.50 per purchase.
+          </p>
         </article>
-    </div>
-</template>
+      </div>
+    </template>
 
-<template id="drawer-research-template">
-    <div class="tech-drawer">
+    <template id="drawer-research-template">
+      <div class="tech-drawer">
         <div id="tech-grid" class="card-grid tech-grid"></div>
-    </div>
-</template>
+      </div>
+    </template>
 
-<template id="drawer-ultimates-template">
-    <div class="ultimate-drawer">
+    <template id="drawer-ultimates-template">
+      <div class="ultimate-drawer">
         <div class="card-grid ultimate-grid" role="list" aria-label="Ultimate abilities">
-            <article
-                class="command-card ultimate-card"
-                role="listitem"
-                aria-labelledby="ultimate-rush-title"
-                aria-describedby="ultimate-rush-desc ultimate-rush-meta"
-            >
-                <div class="card-header">
-                    <div class="card-heading">
-                        <p class="card-eyebrow">Combat Ultimate</p>
-                        <h3 class="card-title" id="ultimate-rush-title">Rush ⚡</h3>
-                        <p class="card-desc" id="ultimate-rush-desc">Sound the charge to boost allied march speed for a short burst.</p>
-                    </div>
-                    <div class="ultimate-actions">
-                        <span class="cost-badge ultimate-status" id="ultimate-rush-status" aria-label="Rush level">Level 1</span>
-                        <button class="card-btn primary-btn upg-btn ultimate-btn" data-ultimate-button="rush" id="buy-ultimate-rush" type="button">
-                            <span class="upgrade-btn__label" data-ultimate-label="rush">Upgrade</span>
-                            <span class="upgrade-btn__cost" data-ultimate-cost="rush">220g</span>
-                        </button>
-                        <button
-                            class="card-btn ultimate-select-btn"
-                            data-ultimate-select="rush"
-                            id="select-ultimate-rush"
-                            type="button"
-                        >
-                            Select
-                        </button>
-                    </div>
-                </div>
-                <p class="card-note" id="ultimate-rush-meta" data-ultimate-level="rush">Upgrade this ultimate between wars to extend its duration.</p>
-                <p class="card-note" id="ultimate-rush-effect" data-ultimate-effect="rush">Rush: +25% speed for 6 seconds.</p>
-            </article>
+          <article
+            class="command-card ultimate-card"
+            role="listitem"
+            aria-labelledby="ultimate-rush-title"
+            aria-describedby="ultimate-rush-desc ultimate-rush-meta"
+          >
+            <div class="card-header">
+              <div class="card-heading">
+                <p class="card-eyebrow">Combat Ultimate</p>
+                <h3 class="card-title" id="ultimate-rush-title">Rush ⚡</h3>
+                <p class="card-desc" id="ultimate-rush-desc">
+                  Sound the charge to boost allied march speed for a short burst.
+                </p>
+              </div>
+              <div class="ultimate-actions">
+                <span
+                  class="cost-badge ultimate-status"
+                  id="ultimate-rush-status"
+                  aria-label="Rush level"
+                  >Level 1</span
+                >
+                <button
+                  class="card-btn primary-btn upg-btn ultimate-btn"
+                  data-ultimate-button="rush"
+                  id="buy-ultimate-rush"
+                  type="button"
+                >
+                  <span class="upgrade-btn__label" data-ultimate-label="rush">Upgrade</span>
+                  <span class="upgrade-btn__cost" data-ultimate-cost="rush">220g</span>
+                </button>
+                <button
+                  class="card-btn ultimate-select-btn"
+                  data-ultimate-select="rush"
+                  id="select-ultimate-rush"
+                  type="button"
+                >
+                  Select
+                </button>
+              </div>
+            </div>
+            <p class="card-note" id="ultimate-rush-meta" data-ultimate-level="rush">
+              Upgrade this ultimate between wars to extend its duration.
+            </p>
+            <p class="card-note" id="ultimate-rush-effect" data-ultimate-effect="rush">
+              Rush: +25% speed for 6 seconds.
+            </p>
+          </article>
 
-            <article
-                class="command-card ultimate-card"
-                role="listitem"
-                aria-labelledby="ultimate-manpower-title"
-                aria-describedby="ultimate-manpower-desc ultimate-manpower-meta"
-            >
-                <div class="card-header">
-                    <div class="card-heading">
-                        <p class="card-eyebrow">Combat Ultimate</p>
-                        <h3 class="card-title" id="ultimate-manpower-title">Manpower 🪖</h3>
-                        <p class="card-desc" id="ultimate-manpower-desc">Rally conscripts to accelerate spawn cadence and reinforce the line.</p>
-                    </div>
-                    <div class="ultimate-actions">
-                        <span class="cost-badge ultimate-status" id="ultimate-manpower-status" aria-label="Manpower level">Level 1</span>
-                        <button class="card-btn primary-btn upg-btn ultimate-btn" data-ultimate-button="manpower" id="buy-ultimate-manpower" type="button">
-                            <span class="upgrade-btn__label" data-ultimate-label="manpower">Upgrade</span>
-                            <span class="upgrade-btn__cost" data-ultimate-cost="manpower">240g</span>
-                        </button>
-                        <button
-                            class="card-btn ultimate-select-btn"
-                            data-ultimate-select="manpower"
-                            id="select-ultimate-manpower"
-                            type="button"
-                        >
-                            Select
-                        </button>
-                    </div>
-                </div>
-                <p class="card-note" id="ultimate-manpower-meta" data-ultimate-level="manpower">Upgrade this ultimate between wars to sharpen reinforcement timing.</p>
-                <p class="card-note" id="ultimate-manpower-effect" data-ultimate-effect="manpower">Manpower: +20% spawn speed with 50% double spawns for 8 seconds.</p>
-            </article>
+          <article
+            class="command-card ultimate-card"
+            role="listitem"
+            aria-labelledby="ultimate-manpower-title"
+            aria-describedby="ultimate-manpower-desc ultimate-manpower-meta"
+          >
+            <div class="card-header">
+              <div class="card-heading">
+                <p class="card-eyebrow">Combat Ultimate</p>
+                <h3 class="card-title" id="ultimate-manpower-title">Manpower 🪖</h3>
+                <p class="card-desc" id="ultimate-manpower-desc">
+                  Rally conscripts to accelerate spawn cadence and reinforce the line.
+                </p>
+              </div>
+              <div class="ultimate-actions">
+                <span
+                  class="cost-badge ultimate-status"
+                  id="ultimate-manpower-status"
+                  aria-label="Manpower level"
+                  >Level 1</span
+                >
+                <button
+                  class="card-btn primary-btn upg-btn ultimate-btn"
+                  data-ultimate-button="manpower"
+                  id="buy-ultimate-manpower"
+                  type="button"
+                >
+                  <span class="upgrade-btn__label" data-ultimate-label="manpower">Upgrade</span>
+                  <span class="upgrade-btn__cost" data-ultimate-cost="manpower">240g</span>
+                </button>
+                <button
+                  class="card-btn ultimate-select-btn"
+                  data-ultimate-select="manpower"
+                  id="select-ultimate-manpower"
+                  type="button"
+                >
+                  Select
+                </button>
+              </div>
+            </div>
+            <p class="card-note" id="ultimate-manpower-meta" data-ultimate-level="manpower">
+              Upgrade this ultimate between wars to sharpen reinforcement timing.
+            </p>
+            <p class="card-note" id="ultimate-manpower-effect" data-ultimate-effect="manpower">
+              Manpower: +20% spawn speed with 50% double spawns for 8 seconds.
+            </p>
+          </article>
 
-            <article
-                class="command-card ultimate-card"
-                role="listitem"
-                aria-labelledby="ultimate-gold-title"
-                aria-describedby="ultimate-gold-desc ultimate-gold-meta"
-            >
-                <div class="card-header">
-                    <div class="card-heading">
-                        <p class="card-eyebrow">Combat Ultimate</p>
-                        <h3 class="card-title" id="ultimate-gold-title">Gold 💰</h3>
-                        <p class="card-desc" id="ultimate-gold-desc">Requisition veteran ranks for immediate war spoils and funding.</p>
-                    </div>
-                    <div class="ultimate-actions">
-                        <span class="cost-badge ultimate-status" id="ultimate-gold-status" aria-label="Gold level">Level 1</span>
-                        <button class="card-btn primary-btn upg-btn ultimate-btn" data-ultimate-button="gold" id="buy-ultimate-gold" type="button">
-                            <span class="upgrade-btn__label" data-ultimate-label="gold">Upgrade</span>
-                            <span class="upgrade-btn__cost" data-ultimate-cost="gold">260g</span>
-                        </button>
-                        <button
-                            class="card-btn ultimate-select-btn"
-                            data-ultimate-select="gold"
-                            id="select-ultimate-gold"
-                            type="button"
-                        >
-                            Select
-                        </button>
-                    </div>
-                </div>
-                <p class="card-note" id="ultimate-gold-meta" data-ultimate-level="gold">Upgrade this ultimate between wars to reclaim more bounty.</p>
-                <p class="card-note" id="ultimate-gold-effect" data-ultimate-effect="gold">Gold: cull 25% of standing units for 6g each.</p>
-            </article>
+          <article
+            class="command-card ultimate-card"
+            role="listitem"
+            aria-labelledby="ultimate-gold-title"
+            aria-describedby="ultimate-gold-desc ultimate-gold-meta"
+          >
+            <div class="card-header">
+              <div class="card-heading">
+                <p class="card-eyebrow">Combat Ultimate</p>
+                <h3 class="card-title" id="ultimate-gold-title">Gold 💰</h3>
+                <p class="card-desc" id="ultimate-gold-desc">
+                  Requisition veteran ranks for immediate war spoils and funding.
+                </p>
+              </div>
+              <div class="ultimate-actions">
+                <span
+                  class="cost-badge ultimate-status"
+                  id="ultimate-gold-status"
+                  aria-label="Gold level"
+                  >Level 1</span
+                >
+                <button
+                  class="card-btn primary-btn upg-btn ultimate-btn"
+                  data-ultimate-button="gold"
+                  id="buy-ultimate-gold"
+                  type="button"
+                >
+                  <span class="upgrade-btn__label" data-ultimate-label="gold">Upgrade</span>
+                  <span class="upgrade-btn__cost" data-ultimate-cost="gold">260g</span>
+                </button>
+                <button
+                  class="card-btn ultimate-select-btn"
+                  data-ultimate-select="gold"
+                  id="select-ultimate-gold"
+                  type="button"
+                >
+                  Select
+                </button>
+              </div>
+            </div>
+            <p class="card-note" id="ultimate-gold-meta" data-ultimate-level="gold">
+              Upgrade this ultimate between wars to reclaim more bounty.
+            </p>
+            <p class="card-note" id="ultimate-gold-effect" data-ultimate-effect="gold">
+              Gold: cull 25% of standing units for 6g each.
+            </p>
+          </article>
         </div>
-    </div>
-</template>
+      </div>
+    </template>
 
-<script type="module" src="scripts/bundle-entry.js"></script>
-</body>
+    <script type="module" src="scripts/bundle-entry.js"></script>
+  </body>
 </html>

@@ -26,35 +26,36 @@ const MOBILE_REGEX = /(Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera 
  * @returns {number} return.baseZoom - Recommended camera zoom for the current platform.
  */
 function detectPlatformProfile(options = {}) {
-    const ua = options.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent || '' : '');
-    const viewportWidth =
-        options.viewportWidth !== undefined
-            ? options.viewportWidth
-            : typeof window !== 'undefined'
-                ? window.innerWidth
-                : 1024;
-    const viewportHeight =
-        options.viewportHeight !== undefined
-            ? options.viewportHeight
-            : typeof window !== 'undefined'
-                ? window.innerHeight
-                : 768;
-    const devicePixelRatio =
-        options.devicePixelRatio !== undefined
-            ? options.devicePixelRatio
-            : typeof window !== 'undefined'
-                ? window.devicePixelRatio || 1
-                : 1;
+  const ua =
+    options.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent || '' : '');
+  const viewportWidth =
+    options.viewportWidth !== undefined
+      ? options.viewportWidth
+      : typeof window !== 'undefined'
+        ? window.innerWidth
+        : 1024;
+  const viewportHeight =
+    options.viewportHeight !== undefined
+      ? options.viewportHeight
+      : typeof window !== 'undefined'
+        ? window.innerHeight
+        : 768;
+  const devicePixelRatio =
+    options.devicePixelRatio !== undefined
+      ? options.devicePixelRatio
+      : typeof window !== 'undefined'
+        ? window.devicePixelRatio || 1
+        : 1;
 
-    const isMobileUA = MOBILE_REGEX.test(ua);
-    const smallViewport = Math.min(viewportWidth, viewportHeight) < 900;
-    const isMobile = isMobileUA || smallViewport;
+  const isMobileUA = MOBILE_REGEX.test(ua);
+  const smallViewport = Math.min(viewportWidth, viewportHeight) < 900;
+  const isMobile = isMobileUA || smallViewport;
 
-    // Cap the backing store multiplier to avoid massive buffers on extreme devices.
-    const deviceScale = Math.min(Math.max(devicePixelRatio, 1), 3);
-    const baseZoom = isMobile ? 0.82 : 1.0;
+  // Cap the backing store multiplier to avoid massive buffers on extreme devices.
+  const deviceScale = Math.min(Math.max(devicePixelRatio, 1), 3);
+  const baseZoom = isMobile ? 0.82 : 1.0;
 
-    return { isMobile, viewportWidth, viewportHeight, deviceScale, baseZoom };
+  return { isMobile, viewportWidth, viewportHeight, deviceScale, baseZoom };
 }
 
 /**
@@ -66,21 +67,21 @@ function detectPlatformProfile(options = {}) {
  * @param {Object} profile - Result from detectPlatformProfile.
  */
 function sizeCanvasForDisplay(canvas, ctx, profile) {
-    if (!canvas || !ctx || !profile) return;
-    const width = profile.viewportWidth;
-    const height = profile.viewportHeight;
-    const scale = profile.deviceScale || 1;
+  if (!canvas || !ctx || !profile) return;
+  const width = profile.viewportWidth;
+  const height = profile.viewportHeight;
+  const scale = profile.deviceScale || 1;
 
-    canvas.width = Math.floor(width * scale);
-    canvas.height = Math.floor(height * scale);
-    if (canvas.style) {
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`;
-    }
+  canvas.width = Math.floor(width * scale);
+  canvas.height = Math.floor(height * scale);
+  if (canvas.style) {
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }
 
-    if (typeof ctx.setTransform === 'function') {
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    }
+  if (typeof ctx.setTransform === 'function') {
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  }
 }
 
 const PlatformAdapter = { detectPlatformProfile, sizeCanvasForDisplay };
@@ -91,11 +92,10 @@ const PlatformAdapter = { detectPlatformProfile, sizeCanvasForDisplay };
  * @returns {Object} platform helper API.
  */
 function initPlatformAdapter(target = typeof window !== 'undefined' ? window : undefined) {
-    if (target) {
-        target.PlatformAdapter = PlatformAdapter;
-    }
-    return PlatformAdapter;
+  if (target) {
+    target.PlatformAdapter = PlatformAdapter;
+  }
+  return PlatformAdapter;
 }
 
 export { PlatformAdapter, detectPlatformProfile, sizeCanvasForDisplay, initPlatformAdapter };
-

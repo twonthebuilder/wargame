@@ -5,13 +5,16 @@ Imperial Favor tracks how pleased the capital is with the current stewardship. I
 > Higher favor reduces taxes; lower favor increases pressure.
 
 ## Defaults and Clamping
+
 - New campaigns start at **5** favor, a neutral midpoint.
 - Values are clamped between **1** and **10** when written to the HUD or serialized so out-of-band adjustments cannot corrupt saves.
 - Mandates shift favor by **+1** on success and **-1** on failure, immediately updating the HUD pill while respecting the 1–10 bounds.
 
 ## Persistence Notes
+
 - The snapshot payload includes `imperialFavor` next to gold, wood, upgrades, and research.
 - Deserialization falls back to the default when a save is missing the field, keeping legacy files compatible.
 
 ## UI Placement
+
 - The pill sits in the resource group beside gold, wood, lives, and the enemy level badge so players can monitor imperial sentiment without hunting through menus.
