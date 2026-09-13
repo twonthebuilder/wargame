@@ -23,6 +23,13 @@ globalThis.document ??= {
     body: stubElement()
 };
 
+globalThis.CustomEvent ??= class CustomEvent {
+    constructor(type, init = {}) {
+        this.type = type;
+        this.detail = init.detail;
+    }
+};
+
 globalThis.window ??= {
     addEventListener: () => {},
     removeEventListener: () => {},
