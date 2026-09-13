@@ -13,33 +13,33 @@
  * @returns {object} dependency map for createGameCore/bootstrapGame.
  */
 export function buildBootstrapDependencies(
-    scope = typeof window !== 'undefined' ? window : globalThis,
-    providers = {}
+  scope = typeof window !== 'undefined' ? window : globalThis,
+  providers = {}
 ) {
-    const source = scope || {};
-    const resolveValue = (camelKey, legacyKey) => {
-        if (Object.prototype.hasOwnProperty.call(providers, camelKey)) return providers[camelKey];
-        if (Object.prototype.hasOwnProperty.call(providers, legacyKey)) return providers[legacyKey];
-        return source[legacyKey];
-    };
+  const source = scope || {};
+  const resolveValue = (camelKey, legacyKey) => {
+    if (Object.prototype.hasOwnProperty.call(providers, camelKey)) return providers[camelKey];
+    if (Object.prototype.hasOwnProperty.call(providers, legacyKey)) return providers[legacyKey];
+    return source[legacyKey];
+  };
 
-    return {
-        inputHelpers: resolveValue('inputHelpers', 'InputHelpers'),
-        researchSystem: resolveValue('researchSystem', 'ResearchSystem'),
-        rebelSystem: resolveValue('rebelSystem', 'RebelSystem'),
-        tutorialHandler: resolveValue('tutorialHandler', 'TutorialHandler'),
-        imperialMandates: resolveValue('imperialMandates', 'ImperialMandates'),
-        imperialMandateManager: resolveValue('imperialMandateManager', 'ImperialMandateManager'),
-        platformAdapter: resolveValue('platformAdapter', 'PlatformAdapter'),
-        tutorialCallouts: resolveValue('tutorialCallouts', 'TutorialCallouts'),
-        introOverlay: resolveValue('introOverlay', 'IntroOverlay'),
-        bootOverlay: resolveValue('bootOverlay', 'BootOverlay'),
-        persistence: resolveValue('persistence', 'Persistence'),
-        storageProbe: resolveValue('storageProbe', 'StorageProbe'),
-        gameAudio: resolveValue('gameAudio', 'GameAudio'),
-        debugToggles: resolveValue('debugToggles', 'DebugToggles'),
-        windowScope: source
-    };
+  return {
+    inputHelpers: resolveValue('inputHelpers', 'InputHelpers'),
+    researchSystem: resolveValue('researchSystem', 'ResearchSystem'),
+    rebelSystem: resolveValue('rebelSystem', 'RebelSystem'),
+    tutorialHandler: resolveValue('tutorialHandler', 'TutorialHandler'),
+    imperialMandates: resolveValue('imperialMandates', 'ImperialMandates'),
+    imperialMandateManager: resolveValue('imperialMandateManager', 'ImperialMandateManager'),
+    platformAdapter: resolveValue('platformAdapter', 'PlatformAdapter'),
+    tutorialCallouts: resolveValue('tutorialCallouts', 'TutorialCallouts'),
+    introOverlay: resolveValue('introOverlay', 'IntroOverlay'),
+    bootOverlay: resolveValue('bootOverlay', 'BootOverlay'),
+    persistence: resolveValue('persistence', 'Persistence'),
+    storageProbe: resolveValue('storageProbe', 'StorageProbe'),
+    gameAudio: resolveValue('gameAudio', 'GameAudio'),
+    debugToggles: resolveValue('debugToggles', 'DebugToggles'),
+    windowScope: source,
+  };
 }
 
 /**
@@ -51,12 +51,12 @@ export function buildBootstrapDependencies(
  * @param {object} [scope] optional window-like object for publishing globals.
  */
 export function publishBootstrapHandles(
-    bootstrapGame,
-    createGameCore,
-    scope = typeof window !== 'undefined' ? window : globalThis
+  bootstrapGame,
+  createGameCore,
+  scope = typeof window !== 'undefined' ? window : globalThis
 ) {
-    scope.bootstrapGame = bootstrapGame;
-    scope.createGameCore = createGameCore;
+  scope.bootstrapGame = bootstrapGame;
+  scope.createGameCore = createGameCore;
 }
 
 export default { buildBootstrapDependencies, publishBootstrapHandles };

@@ -2,18 +2,21 @@ import assert from 'assert';
 import { createGameCore } from '../scripts/game/core.js';
 
 function run() {
-    const { Game } = createGameCore({ dependencies: { persistence: null } });
-    const researchState = Game.buildResearchState();
+  const { Game } = createGameCore({ dependencies: { persistence: null } });
+  const researchState = Game.buildResearchState();
 
-    assert.ok(Array.isArray(researchState.technologies), 'Research technologies should be an array.');
-    assert.ok(researchState.bonuses && typeof researchState.bonuses === 'object', 'Research bonuses should be an object.');
-    assert.strictEqual(typeof researchState.lives, 'number', 'Research lives should be numeric.');
+  assert.ok(Array.isArray(researchState.technologies), 'Research technologies should be an array.');
+  assert.ok(
+    researchState.bonuses && typeof researchState.bonuses === 'object',
+    'Research bonuses should be an object.'
+  );
+  assert.strictEqual(typeof researchState.lives, 'number', 'Research lives should be numeric.');
 
-    const negativeLivesState = Game.buildResearchState({
-        technologies: [{ id: 'lives', timesPurchased: 1 }],
-        lives: -3
-    });
-    assert.strictEqual(negativeLivesState.lives, 0, 'Research lives should clamp at zero.');
+  const negativeLivesState = Game.buildResearchState({
+    technologies: [{ id: 'lives', timesPurchased: 1 }],
+    lives: -3,
+  });
+  assert.strictEqual(negativeLivesState.lives, 0, 'Research lives should clamp at zero.');
 }
 
 run();

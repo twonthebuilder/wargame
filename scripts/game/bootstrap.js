@@ -12,24 +12,24 @@ import { canUseLocalStorage } from '../storageProbe.js';
  * @returns {{ storage: Storage|null, warning: string|null, error: Error|null }}
  */
 export function resolveSettingsStorage(scope = typeof window !== 'undefined' ? window : null) {
-    try {
-        if (!scope) {
-            return { storage: null, warning: 'Local storage unavailable: saves disabled.', error: null };
-        }
-
-        const storage = scope.localStorage;
-        if (!storage) {
-            return { storage: null, warning: 'Local storage unavailable: saves disabled.', error: null };
-        }
-
-        const storageProbeOptions = { silent: true };
-        if (!canUseLocalStorage(scope, storageProbeOptions)) {
-            return { storage: null, warning: 'Local storage blocked: saves disabled.', error: null };
-        }
-        return { storage, warning: null, error: null };
-    } catch (error) {
-        return { storage: null, warning: 'Local storage error: saves disabled.', error };
+  try {
+    if (!scope) {
+      return { storage: null, warning: 'Local storage unavailable: saves disabled.', error: null };
     }
+
+    const storage = scope.localStorage;
+    if (!storage) {
+      return { storage: null, warning: 'Local storage unavailable: saves disabled.', error: null };
+    }
+
+    const storageProbeOptions = { silent: true };
+    if (!canUseLocalStorage(scope, storageProbeOptions)) {
+      return { storage: null, warning: 'Local storage blocked: saves disabled.', error: null };
+    }
+    return { storage, warning: null, error: null };
+  } catch (error) {
+    return { storage: null, warning: 'Local storage error: saves disabled.', error };
+  }
 }
 
 /**
@@ -40,53 +40,53 @@ export function resolveSettingsStorage(scope = typeof window !== 'undefined' ? w
  * @returns {Object} active Game instance
  */
 export function bootstrapGame(dependencies = {}) {
-    const scope = dependencies.windowScope || (typeof window !== 'undefined' ? window : null);
-    const { Game, Hex, Layout, TIPS } = createGameCore({ dependencies });
-    const { storage, warning, error } = resolveSettingsStorage(scope);
+  const scope = dependencies.windowScope || (typeof window !== 'undefined' ? window : null);
+  const { Game, Hex, Layout, TIPS } = createGameCore({ dependencies });
+  const { storage, warning, error } = resolveSettingsStorage(scope);
 
-    composeGameSettings(Game, {
-        storageKey: Game.settingsStorageKey,
-        storage
+  composeGameSettings(Game, {
+    storageKey: Game.settingsStorageKey,
+    storage,
+  });
+  applyUIBindings(Game, { Hex, Layout, TIPS });
+
+  if (warning) {
+    const banner = `${warning} Settings will reset between sessions.`;
+    Game.logBootstrapWarning(banner, error || undefined);
+    Game.updateSaveStatus?.(banner);
+    Game.enqueueNotification?.({
+      id: 'storage-unavailable',
+      title: 'Storage Disabled',
+      lines: [banner],
+      tone: 'warning',
     });
-    applyUIBindings(Game, { Hex, Layout, TIPS });
+  }
 
-    if (warning) {
-        const banner = `${warning} Settings will reset between sessions.`;
-        Game.logBootstrapWarning(banner, error || undefined);
-        Game.updateSaveStatus?.(banner);
-        Game.enqueueNotification?.({
-            id: 'storage-unavailable',
-            title: 'Storage Disabled',
-            lines: [banner],
-            tone: 'warning'
-        });
-    }
-
-    const loadSnapshot = ({ activeSaveSlot }) => {
+  const loadSnapshot = ({ activeSaveSlot }) => {
     const persistence = Object.prototype.hasOwnProperty.call(dependencies, 'persistence')
-        ? dependencies.persistence
-        : null;
+      ? dependencies.persistence
+      : null;
     if (!persistence) {
-        return { state: null, stats: { ...Game.stats }, slot: activeSaveSlot };
+      return { state: null, stats: { ...Game.stats }, slot: activeSaveSlot };
     }
     return persistence.loadSnapshot(activeSaveSlot, { hexFactory: (q, r, s) => new Hex(q, r, s) });
-};
+  };
 
-    if (scope) {
-        scope.Hex = Hex;
-        scope.Game = Game;
-    }
+  if (scope) {
+    scope.Hex = Hex;
+    scope.Game = Game;
+  }
 
-    Game.init({
-        introOverlay: dependencies.introOverlay || null,
-        bootOverlay: dependencies.bootOverlay || null,
-        loadSnapshot,
-        onHUDUpdate: () => Game.updateHUD(),
-        onSaveSlotsUpdate: () => Game.updateSaveSlotsUI(),
-        onPostInit: () => {
-            setupUIBindings(Game);
-        }
-    });
+  Game.init({
+    introOverlay: dependencies.introOverlay || null,
+    bootOverlay: dependencies.bootOverlay || null,
+    loadSnapshot,
+    onHUDUpdate: () => Game.updateHUD(),
+    onSaveSlotsUpdate: () => Game.updateSaveSlotsUI(),
+    onPostInit: () => {
+      setupUIBindings(Game);
+    },
+  });
 
-    return Game;
+  return Game;
 }

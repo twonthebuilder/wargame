@@ -6,6 +6,7 @@ supports a **grouped playback window** that collapses bursts into a single
 playback per time slice.
 
 ## How it works
+
 - Each manifest entry can define a `groupKey`, `groupWindowMs`, and
   `maxGroupPlays`.
 - When multiple `AudioBridge.play()` calls share the same `groupKey`, only the
@@ -14,6 +15,7 @@ playback per time slice.
   play.
 
 ## Current thresholds
+
 - **Combat deaths:** `groupKey: "combat-death"`, `groupWindowMs: 140`,
   `maxGroupPlays: 1`.
   - Applies to both `death` and `raredeath` so a large volley of deaths resolves
@@ -22,6 +24,7 @@ playback per time slice.
     call volume.
 
 ## Where to update
+
 - `scripts/audioConfig.js` — tweak the grouping values on the SFX manifest
   entries.
 - `scripts/audio/sfxRouting.js` — grouping logic lives inside

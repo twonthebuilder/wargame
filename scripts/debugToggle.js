@@ -15,9 +15,9 @@ let debugToggles = null;
  * Register any currently playing audio nodes with the debug bus for backfill.
  */
 function syncAudioDebugBus() {
-    if (typeof GameAudio?.syncDebugBus === 'function') {
-        GameAudio.syncDebugBus();
-    }
+  if (typeof GameAudio?.syncDebugBus === 'function') {
+    GameAudio.syncDebugBus();
+  }
 }
 
 /**
@@ -27,12 +27,12 @@ function syncAudioDebugBus() {
  * @returns {Object} resolved debug toggle flags.
  */
 function resolveDebugToggles(target = typeof window !== 'undefined' ? window : undefined) {
-    if (debugToggles) return debugToggles;
-    if (!target) return {};
-    const existing = target.DebugToggles || {};
-    debugToggles = { showClaimCosts: false, showDebugLog: false, audioDebugBus: false, ...existing };
-    target.DebugToggles = debugToggles;
-    return debugToggles;
+  if (debugToggles) return debugToggles;
+  if (!target) return {};
+  const existing = target.DebugToggles || {};
+  debugToggles = { showClaimCosts: false, showDebugLog: false, audioDebugBus: false, ...existing };
+  target.DebugToggles = debugToggles;
+  return debugToggles;
 }
 
 /**
@@ -40,9 +40,10 @@ function resolveDebugToggles(target = typeof window !== 'undefined' ? window : u
  * @param {Document|Object|null} doc document-like API with getElementById.
  */
 function resolvePanel(doc) {
-    if (!doc) return;
-    debugPanel = debugPanel || doc.getElementById('audio-debug') || doc.getElementById('audio-debug-panel');
-    toggleButton = toggleButton || doc.getElementById('debug-toggle');
+  if (!doc) return;
+  debugPanel =
+    debugPanel || doc.getElementById('audio-debug') || doc.getElementById('audio-debug-panel');
+  toggleButton = toggleButton || doc.getElementById('debug-toggle');
 }
 
 /**
@@ -51,34 +52,34 @@ function resolvePanel(doc) {
  * @param {Document|Object|null} doc document-like API for lookups.
  */
 function setDebugVisibility(isVisible, doc = typeof document !== 'undefined' ? document : null) {
-    resolvePanel(doc);
-    if (!debugPanel) return;
-    debugPanel.classList.toggle('visible', isVisible);
-    debugPanel.setAttribute('aria-hidden', (!isVisible).toString());
-    if (toggleButton) {
-        toggleButton.setAttribute('aria-pressed', isVisible.toString());
+  resolvePanel(doc);
+  if (!debugPanel) return;
+  debugPanel.classList.toggle('visible', isVisible);
+  debugPanel.setAttribute('aria-hidden', (!isVisible).toString());
+  if (toggleButton) {
+    toggleButton.setAttribute('aria-pressed', isVisible.toString());
+  }
+  let debugBusPromise = null;
+  if (debugToggles) {
+    debugToggles.showDebugLog = isVisible;
+    if (isVisible) {
+      debugToggles.audioDebugBus = true;
+      debugBusPromise = enableAudioDebugBus().then(() => {
+        syncAudioDebugBus();
+      });
     }
-    let debugBusPromise = null;
-    if (debugToggles) {
-        debugToggles.showDebugLog = isVisible;
-        if (isVisible) {
-            debugToggles.audioDebugBus = true;
-            debugBusPromise = enableAudioDebugBus().then(() => {
-                syncAudioDebugBus();
-            });
-        }
-    }
-    const debugLogEl = doc?.getElementById?.('debug-log');
-    if (!debugLogEl?.classList) return;
-    if (isVisible && debugLogEl.textContent) {
-        debugLogEl.classList.add('visible');
-        return;
-    }
-    if (getBootPhase() !== BOOT_PHASES.READY) {
-        debugLogEl.classList.remove('visible');
-    }
+  }
+  const debugLogEl = doc?.getElementById?.('debug-log');
+  if (!debugLogEl?.classList) return;
+  if (isVisible && debugLogEl.textContent) {
+    debugLogEl.classList.add('visible');
+    return;
+  }
+  if (getBootPhase() !== BOOT_PHASES.READY) {
+    debugLogEl.classList.remove('visible');
+  }
 
-    return debugBusPromise;
+  return debugBusPromise;
 }
 
 /**
@@ -86,9 +87,9 @@ function setDebugVisibility(isVisible, doc = typeof document !== 'undefined' ? d
  * @param {Document|Object|null} doc document-like API for lookups.
  */
 function toggleDebug(doc = typeof document !== 'undefined' ? document : null) {
-    resolvePanel(doc);
-    const shouldShow = !debugPanel?.classList.contains('visible');
-    setDebugVisibility(shouldShow, doc);
+  resolvePanel(doc);
+  const shouldShow = !debugPanel?.classList.contains('visible');
+  setDebugVisibility(shouldShow, doc);
 }
 
 /**
@@ -96,10 +97,10 @@ function toggleDebug(doc = typeof document !== 'undefined' ? document : null) {
  * @param {Window|Object} [target] scope that owns the DebugToggles object.
  */
 function toggleClaimCostLabels(target = typeof window !== 'undefined' ? window : undefined) {
-    const toggles = resolveDebugToggles(target);
-    toggles.showClaimCosts = !toggles.showClaimCosts;
-    const state = toggles.showClaimCosts ? 'enabled' : 'disabled';
-    console.info(`[DebugToggle] Claim cost overlays ${state}.`);
+  const toggles = resolveDebugToggles(target);
+  toggles.showClaimCosts = !toggles.showClaimCosts;
+  const state = toggles.showClaimCosts ? 'enabled' : 'disabled';
+  console.info(`[DebugToggle] Claim cost overlays ${state}.`);
 }
 
 /**
@@ -109,50 +110,54 @@ function toggleClaimCostLabels(target = typeof window !== 'undefined' ? window :
  * @param {Document|Object|null} [options.document] document-like scope to query.
  * @returns {{ toggleDebug: Function, setDebugVisibility: Function, toggleClaimCostLabels: Function, keyHandler: Function|null }}
  */
-function initDebugToggle(target = typeof window !== 'undefined' ? window : undefined, options = {}) {
-    const doc = options.document || target?.document || (typeof document !== 'undefined' ? document : null);
-    if (!doc || typeof doc.addEventListener !== 'function') {
-        resolveDebugToggles(target);
-        return {
-            toggleDebug,
-            setDebugVisibility,
-            toggleClaimCostLabels,
-            keyHandler: null
-        };
-    }
-
-    resolvePanel(doc);
+function initDebugToggle(
+  target = typeof window !== 'undefined' ? window : undefined,
+  options = {}
+) {
+  const doc =
+    options.document || target?.document || (typeof document !== 'undefined' ? document : null);
+  if (!doc || typeof doc.addEventListener !== 'function') {
     resolveDebugToggles(target);
-    setDebugVisibility(false, doc);
-
-    if (toggleButton) {
-        toggleButton.addEventListener('click', () => toggleDebug(doc));
-    }
-
-    const keyHandler = (event) => {
-        if (event.key === 'F3' || event.key === '`' || event.key === '~') {
-            toggleDebug(doc);
-        }
-        if (event.key === 'F8') {
-            toggleClaimCostLabels(target);
-        }
-    };
-
-    doc.addEventListener('keydown', keyHandler);
-
     return {
-        toggleDebug,
-        setDebugVisibility,
-        toggleClaimCostLabels,
-        keyHandler
+      toggleDebug,
+      setDebugVisibility,
+      toggleClaimCostLabels,
+      keyHandler: null,
     };
+  }
+
+  resolvePanel(doc);
+  resolveDebugToggles(target);
+  setDebugVisibility(false, doc);
+
+  if (toggleButton) {
+    toggleButton.addEventListener('click', () => toggleDebug(doc));
+  }
+
+  const keyHandler = (event) => {
+    if (event.key === 'F3' || event.key === '`' || event.key === '~') {
+      toggleDebug(doc);
+    }
+    if (event.key === 'F8') {
+      toggleClaimCostLabels(target);
+    }
+  };
+
+  doc.addEventListener('keydown', keyHandler);
+
+  return {
+    toggleDebug,
+    setDebugVisibility,
+    toggleClaimCostLabels,
+    keyHandler,
+  };
 }
 
 const DebugToggle = {
-    initDebugToggle,
-    toggleDebug,
-    setDebugVisibility,
-    toggleClaimCostLabels
+  initDebugToggle,
+  toggleDebug,
+  setDebugVisibility,
+  toggleClaimCostLabels,
 };
 
 export { DebugToggle, initDebugToggle, toggleDebug, setDebugVisibility, toggleClaimCostLabels };

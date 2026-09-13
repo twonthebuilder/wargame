@@ -17,52 +17,48 @@ import { TILE_VISIBILITY } from './visibilityMask.js';
  * unseen/seen/visible state per coordinate.
  */
 export function drawOverworldTiles(
-    overworld,
-    {
-        layout,
-        drawHex,
-        parseKey,
-        drawTileOverlay = () => {},
-        showClaimCosts = false,
-        tileVisibility
-    }
+  overworld,
+  { layout, drawHex, parseKey, drawTileOverlay = () => {}, showClaimCosts = false, tileVisibility }
 ) {
-    let drawnTiles = 0;
-    const resolveTileVisibility = typeof tileVisibility === 'function'
-        ? tileVisibility
-        : (tile, key) => (tileVisibility instanceof Map ? tileVisibility.get(key) : tile?.visibility);
+  let drawnTiles = 0;
+  const resolveTileVisibility =
+    typeof tileVisibility === 'function'
+      ? tileVisibility
+      : (tile, key) => (tileVisibility instanceof Map ? tileVisibility.get(key) : tile?.visibility);
 
-    overworld.hexes.forEach((tile) => {
-        const def = OVERWORLD_TILES[tile.type.toUpperCase()];
-        const key = tile.hex?.toString ? tile.hex.toString() : undefined;
-        const visibility = resolveTileVisibility(tile, key) || TILE_VISIBILITY.VISIBLE;
-        const overlayState = {
-            visibility,
-            isUnseen: visibility === TILE_VISIBILITY.UNSEEN,
-            isSeen: visibility === TILE_VISIBILITY.SEEN,
-            isVisible: visibility === TILE_VISIBILITY.VISIBLE
-        };
-        if (def) {
-            drawHex(layout, tile.hex, def.color, '#264653', def.char);
-            drawnTiles++;
-        }
-        drawTileOverlay(tile.hex, tile, visibility, overlayState);
-    });
-
-    if (drawnTiles === 0) {
-        if (!drawOverworldTiles._warnedAboutEmptyTiles) {
-            console.warn('[OverworldRenderer] No overworld tiles were drawn this frame; continuing with overlay-only frame.');
-            drawOverworldTiles._warnedAboutEmptyTiles = true;
-        }
-    } else if (drawOverworldTiles._warnedAboutEmptyTiles) {
-        drawOverworldTiles._warnedAboutEmptyTiles = false;
+  overworld.hexes.forEach((tile) => {
+    const def = OVERWORLD_TILES[tile.type.toUpperCase()];
+    const key = tile.hex?.toString ? tile.hex.toString() : undefined;
+    const visibility = resolveTileVisibility(tile, key) || TILE_VISIBILITY.VISIBLE;
+    const overlayState = {
+      visibility,
+      isUnseen: visibility === TILE_VISIBILITY.UNSEEN,
+      isSeen: visibility === TILE_VISIBILITY.SEEN,
+      isVisible: visibility === TILE_VISIBILITY.VISIBLE,
+    };
+    if (def) {
+      drawHex(layout, tile.hex, def.color, '#264653', def.char);
+      drawnTiles++;
     }
+    drawTileOverlay(tile.hex, tile, visibility, overlayState);
+  });
 
-    const shouldStampCosts = Boolean(showClaimCosts);
-    overworld.claimable.forEach((cost, key) => {
-        const claimLabel = shouldStampCosts ? `${cost}w` : '';
-        drawHex(layout, parseKey(key), 'rgba(255,255,255,0.05)', '#333', '', claimLabel);
-    });
+  if (drawnTiles === 0) {
+    if (!drawOverworldTiles._warnedAboutEmptyTiles) {
+      console.warn(
+        '[OverworldRenderer] No overworld tiles were drawn this frame; continuing with overlay-only frame.'
+      );
+      drawOverworldTiles._warnedAboutEmptyTiles = true;
+    }
+  } else if (drawOverworldTiles._warnedAboutEmptyTiles) {
+    drawOverworldTiles._warnedAboutEmptyTiles = false;
+  }
+
+  const shouldStampCosts = Boolean(showClaimCosts);
+  overworld.claimable.forEach((cost, key) => {
+    const claimLabel = shouldStampCosts ? `${cost}w` : '';
+    drawHex(layout, parseKey(key), 'rgba(255,255,255,0.05)', '#333', '', claimLabel);
+  });
 }
 
 drawOverworldTiles._warnedAboutEmptyTiles = false;

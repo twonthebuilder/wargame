@@ -6,13 +6,13 @@ const DEFAULT_IMPERIAL_FAVOR = 5;
  * @returns {number} clamped favor within the 1–10 range (defaults to midpoint on invalid input).
  */
 function clampImperialFavor(value) {
-    const numeric = Number.isFinite(value) ? Math.round(value) : DEFAULT_IMPERIAL_FAVOR;
-    return Math.min(10, Math.max(1, numeric));
+  const numeric = Number.isFinite(value) ? Math.round(value) : DEFAULT_IMPERIAL_FAVOR;
+  return Math.min(10, Math.max(1, numeric));
 }
 
 export { DEFAULT_IMPERIAL_FAVOR, clampImperialFavor };
 
 const ImperialFavor = { DEFAULT_IMPERIAL_FAVOR, clampImperialFavor };
 if (typeof globalThis !== 'undefined') {
-    globalThis.ImperialFavor = ImperialFavor;
+  globalThis.ImperialFavor = ImperialFavor;
 }

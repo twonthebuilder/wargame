@@ -13,16 +13,16 @@ const bundleMatch = gameHtml.match(/src="\.\/assets\/(game-[^"]+\.js)"/);
 assert.ok(bundleMatch, 'game page should reference its generated bundle');
 
 const requiredFiles = [
-    'style.css',
-    path.join('assets', bundleMatch[1]),
-    path.join('sfx', 'system', 'victory.mp3'),
-    path.join('sfx', 'combat', 'sword', 'sword.mp3'),
-    path.join('sfx', 'ambient', 'ambient.mp3')
+  'style.css',
+  path.join('assets', bundleMatch[1]),
+  path.join('sfx', 'system', 'victory.mp3'),
+  path.join('sfx', 'combat', 'sword', 'sword.mp3'),
+  path.join('sfx', 'ambient', 'ambient.mp3'),
 ];
 
 for (const relativePath of requiredFiles) {
-    const filePath = path.join(dist, relativePath);
-    assert.ok(fs.statSync(filePath).size > 0, `${relativePath} should be a non-empty built asset`);
+  const filePath = path.join(dist, relativePath);
+  assert.ok(fs.statSync(filePath).size > 0, `${relativePath} should be a non-empty built asset`);
 }
 
 console.log('Built-site smoke check passed.');

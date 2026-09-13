@@ -9,25 +9,32 @@
  * optional logging configuration used to silence warnings or route them elsewhere.
  * @returns {boolean} true when storage can be touched, false otherwise.
  */
-export function canUseLocalStorage(scope = typeof window !== 'undefined' ? window : globalThis, options = {}) {
-    const { logger, silent } = options || {};
-    const warn = !silent && (logger || (typeof console !== 'undefined' ? console.warn : null));
-    try {
-        const storage = scope && scope.localStorage;
-        if (!storage || typeof storage.setItem !== 'function' || typeof storage.removeItem !== 'function') {
-            return false;
-        }
-
-        const probeKey = '__hex-war-storage-probe__';
-        storage.setItem(probeKey, 'ok');
-        storage.removeItem(probeKey);
-        return true;
-    } catch (error) {
-        if (warn) {
-            warn('Local storage unavailable', error);
-        }
-        return false;
+export function canUseLocalStorage(
+  scope = typeof window !== 'undefined' ? window : globalThis,
+  options = {}
+) {
+  const { logger, silent } = options || {};
+  const warn = !silent && (logger || (typeof console !== 'undefined' ? console.warn : null));
+  try {
+    const storage = scope && scope.localStorage;
+    if (
+      !storage ||
+      typeof storage.setItem !== 'function' ||
+      typeof storage.removeItem !== 'function'
+    ) {
+      return false;
     }
+
+    const probeKey = '__hex-war-storage-probe__';
+    storage.setItem(probeKey, 'ok');
+    storage.removeItem(probeKey);
+    return true;
+  } catch (error) {
+    if (warn) {
+      warn('Local storage unavailable', error);
+    }
+    return false;
+  }
 }
 
 const api = { canUseLocalStorage };
@@ -38,9 +45,8 @@ const api = { canUseLocalStorage };
  * @returns {Object} storage probe API.
  */
 export function initStorageProbe(target = typeof window !== 'undefined' ? window : undefined) {
-    if (target) {
-        target.StorageProbe = api;
-    }
-    return api;
+  if (target) {
+    target.StorageProbe = api;
+  }
+  return api;
 }
-

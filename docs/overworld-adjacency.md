@@ -6,6 +6,7 @@ hex map, identifies connected components of like-type, like-owner tiles, and cac
 result so income ticks and UI renders stay in sync.
 
 ## Cluster Logic
+
 - Only owned, non-scorched, non-rebel-camp tiles participate in clusters. Enemy and rebel
   camps never contribute to adjacency bonuses.
 - Clusters are flood-filled based on axial neighbors. A tile that is isolated (cluster
@@ -14,12 +15,14 @@ result so income ticks and UI renders stay in sync.
   therefore receives a 20% rate before other modifiers.
 
 ## Land Reclamation Integration
+
 - Tiles converted from fields are marked as `wasReclaimed` and receive an additional
   **5% reclamation rate** (per land-reclamation purchase) on top of the adjacency rate.
 - The reclamation component stacks with the adjacency rate and applies even to a
   single reclaimed tile so long as it generates income.
 
 ## Income Application
+
 - Each income tick rebuilds the cluster cache and applies bonus gold/wood per tile:
   `bonus = floor(baseIncome * (adjacencyRate + reclamationRate))`.
 - Cluster results are stored on `game.overworld.clusterBonuses` and injected into the
@@ -27,6 +30,7 @@ result so income ticks and UI renders stay in sync.
   recomputing the map.
 
 ## UI Exposure
+
 - The tile inspector renders both the headline tile label and a secondary line showing
   the resource bonus, cluster size, and tooltip with the active rates.
 - When the game is paused, the inspector persists but marks the bonus line as paused to

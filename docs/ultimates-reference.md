@@ -11,12 +11,14 @@ persistent `game.ultimates` store (see `DEFAULT_ULTIMATE_LEVELS`). The tables
 below describe the tuned values by upgrade level.
 
 ### Rush (⚡)
+
 - **Default level:** 1
 - **Charge delay:** 15s → 22s → 30s
 - **Duration:** 6s → 8s → 10s
 - **Speed multiplier:** 1.25× → 1.4× → 1.6×
 
 ### Manpower (🪖)
+
 - **Default level:** 1
 - **Charge delay:** 18s → 24s → 30s
 - **Duration:** 8s → 10s → 12s
@@ -24,6 +26,7 @@ below describe the tuned values by upgrade level.
 - **Double-spawn chance:** 50% at all levels
 
 ### Gold (💰)
+
 - **Default level:** 1
 - **Charge delay:** 15s → 20s → 25s
 - **Unit cull percent:** 25% → 35% → 45%

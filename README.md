@@ -47,6 +47,7 @@ This repository originated as a single-page prototype for the Hex Kingdom wargam
 ### Build and bundle
 
 - Use Rollup to bundle the in-page scripts into a single deferred asset for release:
+
   ```bash
   npm run build
   ```
@@ -62,6 +63,7 @@ This repository originated as a single-page prototype for the Hex Kingdom wargam
 ### Testing
 
 - Run the consolidated suite with:
+
   ```bash
   npm test
   ```

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const testsDirectory = path.dirname(fileURLToPath(import.meta.url));
 const html = fs.readFileSync(path.join(testsDirectory, '..', 'Wargame.html'), 'utf8');
-const viewport = html.match(/<meta\s+name="viewport"\s+content="([^"]+)"\s*>/i)?.[1];
+const viewport = html.match(/<meta\s+name="viewport"\s+content="([^"]+)"\s*\/?>/i)?.[1];
 
 assert.ok(viewport, 'Expected the document to define a viewport meta tag.');
 assert.match(

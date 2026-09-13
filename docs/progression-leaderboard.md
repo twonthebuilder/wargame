@@ -15,29 +15,29 @@ level = max(1, stats.warsWon + 1)
 ## Metric definitions + update moments
 
 - **`stats.warsFought`**
-  - *Meaning:* Total wars started this campaign.
-  - *Updates:* Incremented when a war is initiated (`startWar` in `scripts/combatEngine.js`).
+  - _Meaning:_ Total wars started this campaign.
+  - _Updates:_ Incremented when a war is initiated (`startWar` in `scripts/combatEngine.js`).
 
 - **`stats.warsWon`**
-  - *Meaning:* Total wars won against rebel camps (victory outcomes that clear a rebel camp).
-  - *Updates:* Incremented at the end of a war when the outcome is `VICTORY` against a rebel camp (`endWar` in `scripts/combatEngine.js`).
-  - *Derived fields:* `state.difficulty` is synchronized to the same value.
+  - _Meaning:_ Total wars won against rebel camps (victory outcomes that clear a rebel camp).
+  - _Updates:_ Incremented at the end of a war when the outcome is `VICTORY` against a rebel camp (`endWar` in `scripts/combatEngine.js`).
+  - _Derived fields:_ `state.difficulty` is synchronized to the same value.
 
 - **`state.difficulty` (Wars won mirror)**
-  - *Meaning:* Raw wars-won counter mirrored into state for legacy payloads.
-  - *Updates:* Synchronized after war outcomes and during persistence normalization.
+  - _Meaning:_ Raw wars-won counter mirrored into state for legacy payloads.
+  - _Updates:_ Synchronized after war outcomes and during persistence normalization.
 
 - **Enemy level (Level)**
-  - *Meaning:* Current enemy level derived from `stats.warsWon + 1` with a minimum of 1.
-  - *Updates:* Derived on demand for UI labels and combat scaling.
+  - _Meaning:_ Current enemy level derived from `stats.warsWon + 1` with a minimum of 1.
+  - _Updates:_ Derived on demand for UI labels and combat scaling.
 
 - **`stats.bestLevel`**
-  - *Meaning:* Highest level achieved this campaign.
-  - *Updates:* Recomputed at the end of each war (`recordWarEnd` in `scripts/combatEngine.js`) using the resolved level.
+  - _Meaning:_ Highest level achieved this campaign.
+  - _Updates:_ Recomputed at the end of each war (`recordWarEnd` in `scripts/combatEngine.js`) using the resolved level.
 
 - **Legacy fields**
-  - *`bestDifficulty` ➜ `bestLevel`*
-  - *`warsPlayed` ➜ `warsFought`*
+  - _`bestDifficulty` ➜ `bestLevel`_
+  - _`warsPlayed` ➜ `warsFought`_
   - These are translated during stats normalization in `scripts/persistence.js`.
 
 ## Persistence + legacy payload reconciliation

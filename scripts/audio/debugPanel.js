@@ -1,25 +1,25 @@
 const debugState = {
-    el: null,
-    timer: 0,
-    snowSectionId: 'snow-debug-section',
-    resolveSnowSnapshot: () => ({
-        snowEnabled: true,
-        snowfallEnabled: true
-    }),
-    setSnowToggle: () => {}
+  el: null,
+  timer: 0,
+  snowSectionId: 'snow-debug-section',
+  resolveSnowSnapshot: () => ({
+    snowEnabled: true,
+    snowfallEnabled: true,
+  }),
+  setSnowToggle: () => {},
 };
 
 function renderToggleRow(id, label, checked = false) {
-    const checkedAttr = checked ? 'checked' : '';
-    return `<label class="debug-toggle-row"><input type="checkbox" id="${id}" ${checkedAttr}>${label}</label>`;
+  const checkedAttr = checked ? 'checked' : '';
+  return `<label class="debug-toggle-row"><input type="checkbox" id="${id}" ${checkedAttr}>${label}</label>`;
 }
 
 function resolveSnowSnapshot() {
-    const snapshot = debugState.resolveSnowSnapshot?.() || {};
-    return {
-        snowEnabled: snapshot.snowEnabled !== false,
-        snowfallEnabled: snapshot.snowfallEnabled !== false
-    };
+  const snapshot = debugState.resolveSnowSnapshot?.() || {};
+  return {
+    snowEnabled: snapshot.snowEnabled !== false,
+    snowfallEnabled: snapshot.snowfallEnabled !== false,
+  };
 }
 
 /**
@@ -31,14 +31,15 @@ function resolveSnowSnapshot() {
  * @param {Function} [options.setSnowToggle] writes a snow toggle value (key, enabled).
  */
 export function init(options = {}) {
-    debugState.el = document.getElementById('audio-debug') || document.getElementById('audio-debug-panel');
-    debugState.timer = 0;
-    debugState.resolveSnowSnapshot = typeof options.resolveSnowSnapshot === 'function'
-        ? options.resolveSnowSnapshot
-        : debugState.resolveSnowSnapshot;
-    debugState.setSnowToggle = typeof options.setSnowToggle === 'function'
-        ? options.setSnowToggle
-        : () => {};
+  debugState.el =
+    document.getElementById('audio-debug') || document.getElementById('audio-debug-panel');
+  debugState.timer = 0;
+  debugState.resolveSnowSnapshot =
+    typeof options.resolveSnowSnapshot === 'function'
+      ? options.resolveSnowSnapshot
+      : debugState.resolveSnowSnapshot;
+  debugState.setSnowToggle =
+    typeof options.setSnowToggle === 'function' ? options.setSnowToggle : () => {};
 }
 
 /**
@@ -46,19 +47,19 @@ export function init(options = {}) {
  * developers can flip overlays without touching globals.
  */
 export function bindSnowControls() {
-    if (!debugState.el) return;
+  if (!debugState.el) return;
 
-    const setToggle = (selector, key) => {
-        const input = debugState.el.querySelector(selector);
-        if (!input) return;
-        input.addEventListener('change', () => {
-            debugState.setSnowToggle(key, input.checked);
-            debugState.timer = 0; // force next update to render the new state quickly
-        });
-    };
+  const setToggle = (selector, key) => {
+    const input = debugState.el.querySelector(selector);
+    if (!input) return;
+    input.addEventListener('change', () => {
+      debugState.setSnowToggle(key, input.checked);
+      debugState.timer = 0; // force next update to render the new state quickly
+    });
+  };
 
-    setToggle('#debug-snow-enabled', 'snowEnabled');
-    setToggle('#debug-snowfall-enabled', 'snowfallEnabled');
+  setToggle('#debug-snow-enabled', 'snowEnabled');
+  setToggle('#debug-snowfall-enabled', 'snowfallEnabled');
 }
 
 /**
@@ -68,50 +69,56 @@ export function bindSnowControls() {
  * @param {string} gameState current game state code (OVERWORLD|COMBAT)
  */
 export function update(dt = 0, gameState = 'OVERWORLD') {
-    if (!debugState.el) return;
-    debugState.timer += dt;
-    if (debugState.timer < 0.5) return;
-    debugState.timer = 0;
+  if (!debugState.el) return;
+  debugState.timer += dt;
+  if (debugState.timer < 0.5) return;
+  debugState.timer = 0;
 
-    const busActive = Boolean(window.AudioDebugBus && window.AudioDebugBus.enabled);
-    const snapshot = (window.AudioDebugBus && window.AudioDebugBus.snapshot)
-        ? window.AudioDebugBus.snapshot()
-        : { intendedTrack: 'None', masterVolume: 1, activeSources: [], groupedClusters: [] };
+  const busActive = Boolean(window.AudioDebugBus && window.AudioDebugBus.enabled);
+  const snapshot =
+    window.AudioDebugBus && window.AudioDebugBus.snapshot
+      ? window.AudioDebugBus.snapshot()
+      : { intendedTrack: 'None', masterVolume: 1, activeSources: [], groupedClusters: [] };
 
-    const snowSnapshot = resolveSnowSnapshot();
+  const snowSnapshot = resolveSnowSnapshot();
 
-    const activeSources = snapshot.activeSources || [];
-    const blockedPlays = snapshot.blockedPlays || [];
-    const groupedClusters = snapshot.groupedClusters || [];
-    const friendlyState = gameState === 'COMBAT' ? 'War Mode' : 'Territory Mode';
-    const playingList = activeSources.length
-        ? `<ul>${activeSources.map(src => `<li>${src.label || src.src || src.key || 'unknown'}</li>`).join('')}</ul>`
-        : '<div>None</div>';
-    const blockedList = blockedPlays.length
-        ? `<ul>${blockedPlays.map(entry => {
-            const label = entry.key || entry.src || entry.variantKey || 'unknown';
-            const reason = entry.message || entry.reason;
-            return `<li>${label}${reason ? ` — ${reason}` : ''}</li>`;
-        }).join('')}</ul>`
-        : '<div>None</div>';
-    const clusterList = groupedClusters.length
-        ? `<ul>${groupedClusters.map((cluster) => {
-            const groupLabel = cluster.groupKey || 'unknown';
-            const windowLabel = cluster.windowMs ? ` / ${cluster.windowMs}ms` : '';
-            const maxLabel = cluster.maxPlays ? ` (max ${cluster.maxPlays})` : '';
-            return `<li>${groupLabel} — blocked ${cluster.blockedCount || 0}${windowLabel}${maxLabel}</li>`;
-        }).join('')}</ul>`
-        : '<div>None</div>';
-    const clusterSection = gameState === 'COMBAT'
-        ? `
+  const activeSources = snapshot.activeSources || [];
+  const blockedPlays = snapshot.blockedPlays || [];
+  const groupedClusters = snapshot.groupedClusters || [];
+  const friendlyState = gameState === 'COMBAT' ? 'War Mode' : 'Territory Mode';
+  const playingList = activeSources.length
+    ? `<ul>${activeSources.map((src) => `<li>${src.label || src.src || src.key || 'unknown'}</li>`).join('')}</ul>`
+    : '<div>None</div>';
+  const blockedList = blockedPlays.length
+    ? `<ul>${blockedPlays
+        .map((entry) => {
+          const label = entry.key || entry.src || entry.variantKey || 'unknown';
+          const reason = entry.message || entry.reason;
+          return `<li>${label}${reason ? ` — ${reason}` : ''}</li>`;
+        })
+        .join('')}</ul>`
+    : '<div>None</div>';
+  const clusterList = groupedClusters.length
+    ? `<ul>${groupedClusters
+        .map((cluster) => {
+          const groupLabel = cluster.groupKey || 'unknown';
+          const windowLabel = cluster.windowMs ? ` / ${cluster.windowMs}ms` : '';
+          const maxLabel = cluster.maxPlays ? ` (max ${cluster.maxPlays})` : '';
+          return `<li>${groupLabel} — blocked ${cluster.blockedCount || 0}${windowLabel}${maxLabel}</li>`;
+        })
+        .join('')}</ul>`
+    : '<div>None</div>';
+  const clusterSection =
+    gameState === 'COMBAT'
+      ? `
             <div class="section">
                 <div class="label">Combat Audio Clusters (${groupedClusters.length})</div>
                 ${clusterList}
             </div>
         `
-        : '';
+      : '';
 
-    debugState.el.innerHTML = `
+  debugState.el.innerHTML = `
             <div class="section">
                 <div class="label">Audio debug bus</div>
                 <div>${busActive ? 'ON' : 'OFF'}</div>
@@ -144,7 +151,7 @@ export function update(dt = 0, gameState = 'OVERWORLD') {
             </div>
         `;
 
-    bindSnowControls();
+  bindSnowControls();
 }
 
 export default { init, update, bindSnowControls };

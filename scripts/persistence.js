@@ -3,726 +3,759 @@
  * The functions here are written to be browser-friendly while also
  * supporting simple Node-based tests.
  */
-import { DEFAULT_IMPERIAL_FAVOR as DEFAULT_FAVOR, clampImperialFavor as clampImperialFavorBase } from './imperialFavor.js';
+import {
+  DEFAULT_IMPERIAL_FAVOR as DEFAULT_FAVOR,
+  clampImperialFavor as clampImperialFavorBase,
+} from './imperialFavor.js';
 /**
  * Build the persistence API against a provided global-like scope.
  * @param {Window|Object} global host scope for storage and constants.
  * @returns {Object} persistence API with save/load helpers.
  */
 function createPersistence(global) {
-    /** Safely resolve localStorage from a provided global-like scope. */
-    function getSafeLocalStorage(scope) {
-        if (!scope) return null;
-        try {
-            return typeof scope.localStorage !== 'undefined' ? scope.localStorage : null;
-        } catch (error) {
-            return null;
-        }
+  /** Safely resolve localStorage from a provided global-like scope. */
+  function getSafeLocalStorage(scope) {
+    if (!scope) return null;
+    try {
+      return typeof scope.localStorage !== 'undefined' ? scope.localStorage : null;
+    } catch (error) {
+      return null;
     }
+  }
 
-    const imperialFavorHelpers = global.ImperialFavor || {
-        DEFAULT_IMPERIAL_FAVOR: DEFAULT_FAVOR,
-        clampImperialFavor: clampImperialFavorBase
+  const imperialFavorHelpers = global.ImperialFavor || {
+    DEFAULT_IMPERIAL_FAVOR: DEFAULT_FAVOR,
+    clampImperialFavor: clampImperialFavorBase,
+  };
+  const { DEFAULT_IMPERIAL_FAVOR = DEFAULT_FAVOR, clampImperialFavor = clampImperialFavorBase } =
+    imperialFavorHelpers || {};
+  const STORAGE_PREFIX = 'hexWar_slot';
+  const STATS_PREFIX = 'hexWar_stats_slot';
+  const STORAGE_KEY = `${STORAGE_PREFIX}1`;
+  const STATS_KEY = `${STATS_PREFIX}1`;
+  const DEFAULT_DAYS_PER_WEEK = 7;
+  const DEFAULT_WEEKS_PER_MONTH = 4;
+  const DEFAULT_START_MONTH_INDEX = Number.isFinite(global.START_MONTH_INDEX)
+    ? global.START_MONTH_INDEX
+    : 3;
+  const DEFAULT_START_TICK = Number.isFinite(global.START_TICK)
+    ? global.START_TICK
+    : DEFAULT_START_MONTH_INDEX * DEFAULT_DAYS_PER_WEEK * DEFAULT_WEEKS_PER_MONTH;
+  const DEFAULT_TIMEKEEPER = {
+    ticks: DEFAULT_START_TICK,
+    daysPerWeek: DEFAULT_DAYS_PER_WEEK,
+    weeksPerMonth: DEFAULT_WEEKS_PER_MONTH,
+  };
+  const buildDefaultFactionState = () => ({
+    standings: {
+      crown: 50,
+      reformers: 50,
+      guilds: 50,
+      masses: 50,
+      frontier: 50,
+    },
+    recentContributors: {
+      crown: [],
+      reformers: [],
+      guilds: [],
+      masses: [],
+      frontier: [],
+    },
+  });
+  const DEFAULT_STATS = {
+    totalKills: 0,
+    bestKills: 0,
+    bestLevel: 0,
+    warsWon: 0,
+    warsFought: 0,
+    lastOutcome: 'N/A',
+    lastSaveISO: null,
+  };
+  const LEGACY_MIGRATIONS = {
+    BEST_DIFFICULTY: 'stats.bestDifficulty',
+    WARS_PLAYED: 'stats.warsPlayed',
+    WARS_WON_FROM_DIFFICULTY: 'stats.warsWonFromDifficulty',
+    REBEL_TILE_TYPE: 'overworld.tileType.rebel',
+  };
+
+  /**
+   * Normalize leaderboard stats and translate legacy save keys into the UI schema.
+   * @param {object} stats raw stats payload from the game or storage.
+   * @param {object} [options]
+   * @param {Array<string>} [options.migrationLog] optional array to record legacy migrations.
+   * @returns {object} stats hydrated with defaults and modern field names.
+   */
+  function normalizeStats(stats, { migrationLog = null } = {}) {
+    const safeStats = stats ?? {};
+    const normalized = { ...DEFAULT_STATS, ...safeStats };
+    const hasBestLevel = Object.prototype.hasOwnProperty.call(safeStats, 'bestLevel');
+    const hasWarsFought = Object.prototype.hasOwnProperty.call(safeStats, 'warsFought');
+    if (!hasBestLevel && Number.isFinite(safeStats.bestDifficulty)) {
+      normalized.bestLevel = safeStats.bestDifficulty;
+      recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.BEST_DIFFICULTY);
+    }
+    if (!hasWarsFought && Number.isFinite(safeStats.warsPlayed)) {
+      normalized.warsFought = safeStats.warsPlayed;
+      recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.WARS_PLAYED);
+    }
+    return normalized;
+  }
+
+  /**
+   * Record legacy migrations without duplicating entries in the provided log.
+   * @param {Array<string>|null} migrationLog optional log for tracking migrations.
+   * @param {string} entry migration identifier to append when missing.
+   */
+  function recordLegacyMigration(migrationLog, entry) {
+    if (!Array.isArray(migrationLog) || !entry) return;
+    if (migrationLog.includes(entry)) return;
+    migrationLog.push(entry);
+  }
+
+  /**
+   * Build a storage adapter wrapper so persistence can swap localStorage
+   * for remote/async implementations without rewriting consumers.
+   * @param {object|null} storage backing store that exposes getItem/setItem/removeItem.
+   * @returns {{getItem: function, setItem: function, removeItem: function, keys: function}} adapter surface.
+   */
+  function createStorageAdapter(storage) {
+    const backing = storage || null;
+    const listKeys = () => {
+      if (!backing) return [];
+      if (typeof backing.keys === 'function') return Array.from(backing.keys());
+      if (typeof backing.length === 'number' && typeof backing.key === 'function') {
+        const keys = [];
+        for (let i = 0; i < backing.length; i += 1) {
+          const key = backing.key(i);
+          if (key) keys.push(key);
+        }
+        return keys;
+      }
+      return Object.keys(backing);
     };
-    const { DEFAULT_IMPERIAL_FAVOR = DEFAULT_FAVOR, clampImperialFavor = clampImperialFavorBase } = imperialFavorHelpers || {};
-    const STORAGE_PREFIX = 'hexWar_slot';
-    const STATS_PREFIX = 'hexWar_stats_slot';
-    const STORAGE_KEY = `${STORAGE_PREFIX}1`;
-    const STATS_KEY = `${STATS_PREFIX}1`;
-    const DEFAULT_DAYS_PER_WEEK = 7;
-    const DEFAULT_WEEKS_PER_MONTH = 4;
-    const DEFAULT_START_MONTH_INDEX = Number.isFinite(global.START_MONTH_INDEX) ? global.START_MONTH_INDEX : 3;
-    const DEFAULT_START_TICK = Number.isFinite(global.START_TICK)
-        ? global.START_TICK
-        : DEFAULT_START_MONTH_INDEX * DEFAULT_DAYS_PER_WEEK * DEFAULT_WEEKS_PER_MONTH;
-    const DEFAULT_TIMEKEEPER = {
-        ticks: DEFAULT_START_TICK,
-        daysPerWeek: DEFAULT_DAYS_PER_WEEK,
-        weeksPerMonth: DEFAULT_WEEKS_PER_MONTH
+
+    return {
+      getItem(key) {
+        if (!backing || typeof backing.getItem !== 'function') return null;
+        return backing.getItem(key);
+      },
+      setItem(key, value) {
+        if (!backing || typeof backing.setItem !== 'function') return null;
+        return backing.setItem(key, value);
+      },
+      removeItem(key) {
+        if (!backing || typeof backing.removeItem !== 'function') return null;
+        return backing.removeItem(key);
+      },
+      keys: listKeys,
     };
-    const buildDefaultFactionState = () => ({
-        standings: {
-            crown: 50,
-            reformers: 50,
-            guilds: 50,
-            masses: 50,
-            frontier: 50
-        },
-        recentContributors: {
-            crown: [],
-            reformers: [],
-            guilds: [],
-            masses: [],
-            frontier: []
-        }
-    });
-    const DEFAULT_STATS = {
-        totalKills: 0,
-        bestKills: 0,
-        bestLevel: 0,
-        warsWon: 0,
-        warsFought: 0,
-        lastOutcome: 'N/A',
-        lastSaveISO: null
+  }
+
+  const defaultStorageAdapter = createStorageAdapter(getSafeLocalStorage(global));
+  let storageAdapter = defaultStorageAdapter;
+
+  /**
+   * Swap the persistence adapter at runtime. Useful for remote or mocked storage layers.
+   * @param {object} adapter custom adapter exposing getItem/setItem/removeItem/keys.
+   * @returns {object} the active adapter after mutation.
+   */
+  function setStorageAdapter(adapter) {
+    const hasSurface =
+      adapter &&
+      typeof adapter.getItem === 'function' &&
+      typeof adapter.setItem === 'function' &&
+      typeof adapter.removeItem === 'function' &&
+      typeof adapter.keys === 'function';
+    const isStorageLike =
+      adapter &&
+      typeof adapter.getItem === 'function' &&
+      typeof adapter.setItem === 'function' &&
+      typeof adapter.removeItem === 'function';
+    if (hasSurface) {
+      storageAdapter = adapter;
+    } else if (isStorageLike) {
+      storageAdapter = createStorageAdapter(adapter);
+    } else {
+      storageAdapter = defaultStorageAdapter;
+    }
+    return storageAdapter;
+  }
+
+  /**
+   * Introspect the current adapter for testing and debugging.
+   * @returns {object} currently configured storage adapter.
+   */
+  function getStorageAdapter() {
+    return storageAdapter;
+  }
+
+  /**
+   * Safely parse JSON from the active storage adapter.
+   * @param {string} key storage key to read.
+   * @param {object} [adapter] optional adapter override for tests.
+   * @returns {object|null} parsed payload or null when missing/invalid.
+   */
+  function readFromStorage(key, adapter = storageAdapter) {
+    if (!adapter) return null;
+    const raw = adapter.getItem(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn('Failed to parse stored data', err);
+      return null;
+    }
+  }
+
+  /**
+   * Generate the storage key for a save slot.
+   * @param {string|number} slot user-facing slot number.
+   * @returns {string} storage key for the slot.
+   */
+  function storageKeyForSlot(slot) {
+    return `${STORAGE_PREFIX}${slot}`;
+  }
+
+  /**
+   * Generate the storage key for leaderboard stats tied to a save slot.
+   * @param {string|number} slot user-facing slot number.
+   * @returns {string} storage key for the slot's stats.
+   */
+  function statsKeyForSlot(slot) {
+    return `${STATS_PREFIX}${slot}`;
+  }
+
+  /**
+   * Normalize overloaded slot + options arguments for load routines.
+   * @param {string|number|object} slotOrOptions slot or options object.
+   * @param {object} [options] optional options when slot is provided first.
+   * @returns {{slot: string, options: object}} normalized params.
+   */
+  function normalizeSlotAndOptions(slotOrOptions, options = {}) {
+    if (typeof slotOrOptions === 'string' || typeof slotOrOptions === 'number') {
+      return { slot: String(slotOrOptions), options };
+    }
+    return { slot: '1', options: slotOrOptions || {} };
+  }
+
+  /** Normalize a raw timekeeper snapshot into a safe payload. */
+  function normalizeTimekeeperSnapshot(snapshot = {}) {
+    return {
+      ticks: Math.max(
+        0,
+        Number.isFinite(snapshot.ticks) ? snapshot.ticks : DEFAULT_TIMEKEEPER.ticks
+      ),
+      daysPerWeek: Math.max(
+        1,
+        Number.isFinite(snapshot.daysPerWeek)
+          ? snapshot.daysPerWeek
+          : DEFAULT_TIMEKEEPER.daysPerWeek
+      ),
+      weeksPerMonth: Math.max(
+        1,
+        Number.isFinite(snapshot.weeksPerMonth)
+          ? snapshot.weeksPerMonth
+          : DEFAULT_TIMEKEEPER.weeksPerMonth
+      ),
     };
-    const LEGACY_MIGRATIONS = {
-        BEST_DIFFICULTY: 'stats.bestDifficulty',
-        WARS_PLAYED: 'stats.warsPlayed',
-        WARS_WON_FROM_DIFFICULTY: 'stats.warsWonFromDifficulty',
-        REBEL_TILE_TYPE: 'overworld.tileType.rebel'
+  }
+
+  /**
+   * Keep difficulty and wars-won counters aligned when loading snapshots.
+   * Wars won is treated as the source of truth when it is present and valid,
+   * with difficulty derived from the same value. When wars-won is missing,
+   * the current difficulty value is used as the fallback source of truth.
+   *
+   * @param {object|null} state hydrated or raw state payload.
+   * @param {object|null} stats hydrated or raw stats payload.
+   * @param {object} [options]
+   * @param {number} [options.fallbackDifficulty=0] fallback difficulty when neither value is set.
+   * @param {object|null} [options.statsSource=null] optional raw stats payload for presence checks.
+   * @returns {{state: object|null, stats: object|null, difficulty: number, warsWon: number}} aligned payloads.
+   */
+  function reconcileDifficultyAndWarsWon(
+    state,
+    stats,
+    { fallbackDifficulty = 0, statsSource = null, migrationLog = null } = {}
+  ) {
+    const fallback = Number.isFinite(fallbackDifficulty) ? fallbackDifficulty : 0;
+    const difficultyValue = Number.isFinite(state?.difficulty)
+      ? Math.max(0, Math.floor(state.difficulty))
+      : null;
+    const warsWonSource = statsSource || stats;
+    const hasWarsWon =
+      Boolean(warsWonSource) && Object.prototype.hasOwnProperty.call(warsWonSource, 'warsWon');
+    const warsWonValue =
+      hasWarsWon && Number.isFinite(stats?.warsWon) ? Math.max(0, Math.floor(stats.warsWon)) : null;
+    if (!hasWarsWon && Number.isFinite(difficultyValue)) {
+      recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.WARS_WON_FROM_DIFFICULTY);
+    }
+    const resolvedWarsWon = Number.isFinite(warsWonValue)
+      ? warsWonValue
+      : Number.isFinite(difficultyValue)
+        ? difficultyValue
+        : fallback;
+
+    return {
+      state: state ? { ...state, difficulty: resolvedWarsWon } : state,
+      stats: stats ? { ...stats, warsWon: resolvedWarsWon } : stats,
+      difficulty: resolvedWarsWon,
+      warsWon: resolvedWarsWon,
+    };
+  }
+
+  /**
+   * Merge queue + in-flight notification payloads into a minimal rehydration list.
+   * @param {object} game live game object that may expose a notification stack getter.
+   * @returns {Array<object>} normalized notification payloads safe for persistence.
+   */
+  function snapshotNotifications(game) {
+    if (!game || typeof game.getNotificationStack !== 'function') return [];
+    const stack = game.getNotificationStack();
+    if (!stack) return [];
+
+    const normalizePayload = (item) => {
+      if (!item) return null;
+      const lines = Array.isArray(item.lines) ? item.lines : item.lines ? [item.lines] : [];
+      return {
+        id: item.id,
+        title: item.title,
+        lines,
+        duration: Number.isFinite(item.duration) ? item.duration : undefined,
+        tone: item.tone,
+      };
     };
 
-    /**
-     * Normalize leaderboard stats and translate legacy save keys into the UI schema.
-     * @param {object} stats raw stats payload from the game or storage.
-     * @param {object} [options]
-     * @param {Array<string>} [options.migrationLog] optional array to record legacy migrations.
-     * @returns {object} stats hydrated with defaults and modern field names.
-     */
-    function normalizeStats(stats, { migrationLog = null } = {}) {
-        const safeStats = stats ?? {};
-        const normalized = { ...DEFAULT_STATS, ...safeStats };
-        const hasBestLevel = Object.prototype.hasOwnProperty.call(safeStats, 'bestLevel');
-        const hasWarsFought = Object.prototype.hasOwnProperty.call(safeStats, 'warsFought');
-        if (!hasBestLevel && Number.isFinite(safeStats.bestDifficulty)) {
-            normalized.bestLevel = safeStats.bestDifficulty;
-            recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.BEST_DIFFICULTY);
-        }
-        if (!hasWarsFought && Number.isFinite(safeStats.warsPlayed)) {
-            normalized.warsFought = safeStats.warsPlayed;
-            recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.WARS_PLAYED);
-        }
-        return normalized;
+    const pending = [];
+    if (Array.isArray(stack.queue)) pending.push(...stack.queue);
+    if (stack.visible instanceof Map) {
+      stack.visible.forEach((entry) => {
+        if (entry?.item) pending.push(entry.item);
+        else if (entry) pending.push(entry);
+      });
     }
 
-    /**
-     * Record legacy migrations without duplicating entries in the provided log.
-     * @param {Array<string>|null} migrationLog optional log for tracking migrations.
-     * @param {string} entry migration identifier to append when missing.
-     */
-    function recordLegacyMigration(migrationLog, entry) {
-        if (!Array.isArray(migrationLog) || !entry) return;
-        if (migrationLog.includes(entry)) return;
-        migrationLog.push(entry);
+    const seen = new Set();
+    return pending
+      .map(normalizePayload)
+      .filter(Boolean)
+      .filter((item) => {
+        const id = item.id || `${item.title || ''}-${item.lines?.[0] || ''}`;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+  }
+
+  /**
+   * Normalize faction state so persistence always stores a full schema.
+   * @param {object|null} factionState live faction state payload.
+   * @returns {{standings: object, recentContributors: object}} sanitized snapshot.
+   */
+  function normalizeFactionStateSnapshot(factionState) {
+    const base = buildDefaultFactionState();
+    if (!factionState || typeof factionState !== 'object') return base;
+    const standings = factionState.standings || {};
+    const contributors = factionState.recentContributors || {};
+    return {
+      standings: {
+        crown: Number.isFinite(standings.crown) ? standings.crown : base.standings.crown,
+        reformers: Number.isFinite(standings.reformers)
+          ? standings.reformers
+          : base.standings.reformers,
+        guilds: Number.isFinite(standings.guilds) ? standings.guilds : base.standings.guilds,
+        masses: Number.isFinite(standings.masses) ? standings.masses : base.standings.masses,
+        frontier: Number.isFinite(standings.frontier)
+          ? standings.frontier
+          : base.standings.frontier,
+      },
+      recentContributors: {
+        crown: Array.isArray(contributors.crown)
+          ? [...contributors.crown]
+          : base.recentContributors.crown,
+        reformers: Array.isArray(contributors.reformers)
+          ? [...contributors.reformers]
+          : base.recentContributors.reformers,
+        guilds: Array.isArray(contributors.guilds)
+          ? [...contributors.guilds]
+          : base.recentContributors.guilds,
+        masses: Array.isArray(contributors.masses)
+          ? [...contributors.masses]
+          : base.recentContributors.masses,
+        frontier: Array.isArray(contributors.frontier)
+          ? [...contributors.frontier]
+          : base.recentContributors.frontier,
+      },
+    };
+  }
+
+  /**
+   * Normalize tutorial state so onboarding flags persist with safe defaults.
+   * @param {object|null} tutorial live tutorial state payload.
+   * @returns {object|null} sanitized tutorial snapshot or null when unavailable.
+   */
+  function normalizeTutorialSnapshot(tutorial) {
+    if (!tutorial || typeof tutorial !== 'object') return null;
+    const frontierSweep = tutorial.frontierSweep || {};
+    const targetTileKey =
+      typeof frontierSweep.targetTileKey === 'string' ? frontierSweep.targetTileKey : null;
+    return {
+      ...tutorial,
+      frontierSweep: {
+        targetTileKey,
+        spreadImmune: frontierSweep.spreadImmune !== false,
+        source: typeof frontierSweep.source === 'string' ? frontierSweep.source : null,
+        enemyLevel: Number.isFinite(frontierSweep.enemyLevel) ? frontierSweep.enemyLevel : null,
+        issuedTick: Number.isFinite(frontierSweep.issuedTick) ? frontierSweep.issuedTick : null,
+        completionTick: Number.isFinite(frontierSweep.completionTick)
+          ? frontierSweep.completionTick
+          : null,
+      },
+    };
+  }
+
+  /**
+   * Serialize the current game state into a JSON-friendly snapshot.
+   * Only serializes deterministic, overworld-friendly data (combat is excluded).
+   * @param {object} game reference to the main Game singleton.
+   * @param {object} [options]
+   * @param {function} [options.mandateSerializer] optional override for mandate serialization.
+   * @returns {object} snapshot that can be persisted.
+   */
+  function serializeGameState(game, options = {}) {
+    const rawStatsInput = game.stats || {};
+    const rawStats = normalizeStats(rawStatsInput);
+    const progressAlignment = reconcileDifficultyAndWarsWon(
+      { difficulty: game.difficulty },
+      rawStats,
+      { statsSource: rawStatsInput }
+    );
+    const overwriteStats = progressAlignment.stats || rawStats;
+    const alignedDifficulty = Number.isFinite(progressAlignment.warsWon)
+      ? progressAlignment.warsWon
+      : Math.max(0, Number.isFinite(game.difficulty) ? game.difficulty : 0);
+    const timekeeper = normalizeTimekeeperSnapshot(game.timekeeper);
+    const mandateSerializer =
+      options.mandateSerializer ||
+      game.imperialMandates?.serializeState ||
+      global.ImperialMandates?.serializeState;
+    const mandates =
+      typeof mandateSerializer === 'function'
+        ? mandateSerializer.call(game.imperialMandates || global.ImperialMandates)
+        : undefined;
+    const narrative =
+      typeof game?.narrative?.serializeState === 'function'
+        ? game.narrative.serializeState()
+        : null;
+    return {
+      gold: game.gold,
+      wood: game.wood,
+      difficulty: alignedDifficulty,
+      upgrades: { ...game.upgrades },
+      ultimates: { ...(game.ultimates || {}) },
+      selectedUltimate: game.selectedUltimate,
+      research: {
+        technologies: Array.from(game.research?.technologies || []).map((t) => ({
+          id: t.id,
+          purchased: Boolean(t.purchased),
+          timesPurchased: t.timesPurchased || 0,
+          optionPurchaseCounts: t.optionPurchaseCounts ? { ...t.optionPurchaseCounts } : undefined,
+        })),
+        lives: game.research?.lives || 0,
+      },
+      imperialFavor: clampImperialFavor(game.imperialFavor),
+      timekeeper,
+      overworld: {
+        hexes: Array.from(game.overworld.hexes.values()).map((tile) => {
+          const { hex, type, owner, prevType, scorchedBy } = tile;
+          const payload = {
+            q: hex.q,
+            r: hex.r,
+            s: hex.s,
+            type,
+            owner: owner ?? null,
+          };
+          if (typeof prevType === 'string') payload.prevType = prevType;
+          if (typeof scorchedBy === 'string') payload.scorchedBy = scorchedBy;
+          return payload;
+        }),
+      },
+      stats: overwriteStats,
+      notifications: snapshotNotifications(game),
+      factionState: normalizeFactionStateSnapshot(game.factionState),
+      tutorial: normalizeTutorialSnapshot(game.tutorial),
+      mandates,
+      narrative,
+    };
+  }
+
+  /**
+   * Build a set of allowed overworld tile ids by pulling from live config when available
+   * and falling back to the default tiles used across the prototype. This guards against
+   * malformed save payloads injecting unexpected tile types during deserialization.
+   * @param {object} [options]
+   * @param {Array<string>} [options.allowedTileIds] optional override to tighten allowed ids.
+   * @returns {Set<string>} all recognized overworld tile identifiers.
+   */
+  function getAllowedTileIds(options = {}) {
+    if (Array.isArray(options.allowedTileIds)) {
+      return new Set(options.allowedTileIds.map((id) => String(id).toLowerCase()));
     }
+    const fallback = [
+      'castle',
+      'field',
+      'forest',
+      'town',
+      'scorched',
+      'rebelcamp',
+      'mine',
+      'shrine',
+      'ruin',
+    ];
 
-    /**
-     * Build a storage adapter wrapper so persistence can swap localStorage
-     * for remote/async implementations without rewriting consumers.
-     * @param {object|null} storage backing store that exposes getItem/setItem/removeItem.
-     * @returns {{getItem: function, setItem: function, removeItem: function, keys: function}} adapter surface.
-     */
-    function createStorageAdapter(storage) {
-        const backing = storage || null;
-        const listKeys = () => {
-            if (!backing) return [];
-            if (typeof backing.keys === 'function') return Array.from(backing.keys());
-            if (typeof backing.length === 'number' && typeof backing.key === 'function') {
-                const keys = [];
-                for (let i = 0; i < backing.length; i += 1) {
-                    const key = backing.key(i);
-                    if (key) keys.push(key);
-                }
-                return keys;
-            }
-            return Object.keys(backing);
-        };
-
-        return {
-            getItem(key) {
-                if (!backing || typeof backing.getItem !== 'function') return null;
-                return backing.getItem(key);
-            },
-            setItem(key, value) {
-                if (!backing || typeof backing.setItem !== 'function') return null;
-                return backing.setItem(key, value);
-            },
-            removeItem(key) {
-                if (!backing || typeof backing.removeItem !== 'function') return null;
-                return backing.removeItem(key);
-            },
-            keys: listKeys
-        };
-    }
-
-    const defaultStorageAdapter = createStorageAdapter(getSafeLocalStorage(global));
-    let storageAdapter = defaultStorageAdapter;
-
-    /**
-     * Swap the persistence adapter at runtime. Useful for remote or mocked storage layers.
-     * @param {object} adapter custom adapter exposing getItem/setItem/removeItem/keys.
-     * @returns {object} the active adapter after mutation.
-     */
-    function setStorageAdapter(adapter) {
-        const hasSurface = adapter
-            && typeof adapter.getItem === 'function'
-            && typeof adapter.setItem === 'function'
-            && typeof adapter.removeItem === 'function'
-            && typeof adapter.keys === 'function';
-        const isStorageLike = adapter
-            && typeof adapter.getItem === 'function'
-            && typeof adapter.setItem === 'function'
-            && typeof adapter.removeItem === 'function';
-        if (hasSurface) {
-            storageAdapter = adapter;
-        } else if (isStorageLike) {
-            storageAdapter = createStorageAdapter(adapter);
-        } else {
-            storageAdapter = defaultStorageAdapter;
-        }
-        return storageAdapter;
-    }
-
-    /**
-     * Introspect the current adapter for testing and debugging.
-     * @returns {object} currently configured storage adapter.
-     */
-    function getStorageAdapter() {
-        return storageAdapter;
-    }
-
-    /**
-     * Safely parse JSON from the active storage adapter.
-     * @param {string} key storage key to read.
-     * @param {object} [adapter] optional adapter override for tests.
-     * @returns {object|null} parsed payload or null when missing/invalid.
-     */
-    function readFromStorage(key, adapter = storageAdapter) {
-        if (!adapter) return null;
-        const raw = adapter.getItem(key);
-        if (!raw) return null;
-        try {
-            return JSON.parse(raw);
-        } catch (err) {
-            console.warn('Failed to parse stored data', err);
-            return null;
-        }
-    }
-
-    /**
-     * Generate the storage key for a save slot.
-     * @param {string|number} slot user-facing slot number.
-     * @returns {string} storage key for the slot.
-     */
-    function storageKeyForSlot(slot) {
-        return `${STORAGE_PREFIX}${slot}`;
-    }
-
-    /**
-     * Generate the storage key for leaderboard stats tied to a save slot.
-     * @param {string|number} slot user-facing slot number.
-     * @returns {string} storage key for the slot's stats.
-     */
-    function statsKeyForSlot(slot) {
-        return `${STATS_PREFIX}${slot}`;
-    }
-
-    /**
-     * Normalize overloaded slot + options arguments for load routines.
-     * @param {string|number|object} slotOrOptions slot or options object.
-     * @param {object} [options] optional options when slot is provided first.
-     * @returns {{slot: string, options: object}} normalized params.
-     */
-    function normalizeSlotAndOptions(slotOrOptions, options = {}) {
-        if (typeof slotOrOptions === 'string' || typeof slotOrOptions === 'number') {
-            return { slot: String(slotOrOptions), options };
-        }
-        return { slot: '1', options: slotOrOptions || {} };
-    }
-
-    /** Normalize a raw timekeeper snapshot into a safe payload. */
-    function normalizeTimekeeperSnapshot(snapshot = {}) {
-        return {
-            ticks: Math.max(0, Number.isFinite(snapshot.ticks) ? snapshot.ticks : DEFAULT_TIMEKEEPER.ticks),
-            daysPerWeek: Math.max(1, Number.isFinite(snapshot.daysPerWeek) ? snapshot.daysPerWeek : DEFAULT_TIMEKEEPER.daysPerWeek),
-            weeksPerMonth: Math.max(1, Number.isFinite(snapshot.weeksPerMonth) ? snapshot.weeksPerMonth : DEFAULT_TIMEKEEPER.weeksPerMonth)
-        };
-    }
-
-    /**
-     * Keep difficulty and wars-won counters aligned when loading snapshots.
-     * Wars won is treated as the source of truth when it is present and valid,
-     * with difficulty derived from the same value. When wars-won is missing,
-     * the current difficulty value is used as the fallback source of truth.
-     *
-     * @param {object|null} state hydrated or raw state payload.
-     * @param {object|null} stats hydrated or raw stats payload.
-     * @param {object} [options]
-     * @param {number} [options.fallbackDifficulty=0] fallback difficulty when neither value is set.
-     * @param {object|null} [options.statsSource=null] optional raw stats payload for presence checks.
-     * @returns {{state: object|null, stats: object|null, difficulty: number, warsWon: number}} aligned payloads.
-     */
-    function reconcileDifficultyAndWarsWon(
-        state,
-        stats,
-        {
-            fallbackDifficulty = 0,
-            statsSource = null,
-            migrationLog = null
-        } = {}
-    ) {
-        const fallback = Number.isFinite(fallbackDifficulty) ? fallbackDifficulty : 0;
-        const difficultyValue = Number.isFinite(state?.difficulty)
-            ? Math.max(0, Math.floor(state.difficulty))
-            : null;
-        const warsWonSource = statsSource || stats;
-        const hasWarsWon = Boolean(warsWonSource)
-            && Object.prototype.hasOwnProperty.call(warsWonSource, 'warsWon');
-        const warsWonValue = hasWarsWon && Number.isFinite(stats?.warsWon)
-            ? Math.max(0, Math.floor(stats.warsWon))
-            : null;
-        if (!hasWarsWon && Number.isFinite(difficultyValue)) {
-            recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.WARS_WON_FROM_DIFFICULTY);
-        }
-        const resolvedWarsWon = Number.isFinite(warsWonValue)
-            ? warsWonValue
-            : (Number.isFinite(difficultyValue) ? difficultyValue : fallback);
-
-        return {
-            state: state ? { ...state, difficulty: resolvedWarsWon } : state,
-            stats: stats ? { ...stats, warsWon: resolvedWarsWon } : stats,
-            difficulty: resolvedWarsWon,
-            warsWon: resolvedWarsWon
-        };
-    }
-
-    /**
-     * Merge queue + in-flight notification payloads into a minimal rehydration list.
-     * @param {object} game live game object that may expose a notification stack getter.
-     * @returns {Array<object>} normalized notification payloads safe for persistence.
-     */
-    function snapshotNotifications(game) {
-        if (!game || typeof game.getNotificationStack !== 'function') return [];
-        const stack = game.getNotificationStack();
-        if (!stack) return [];
-
-        const normalizePayload = (item) => {
-            if (!item) return null;
-            const lines = Array.isArray(item.lines)
-                ? item.lines
-                : (item.lines ? [item.lines] : []);
-            return {
-                id: item.id,
-                title: item.title,
-                lines,
-                duration: Number.isFinite(item.duration) ? item.duration : undefined,
-                tone: item.tone
-            };
-        };
-
-        const pending = [];
-        if (Array.isArray(stack.queue)) pending.push(...stack.queue);
-        if (stack.visible instanceof Map) {
-            stack.visible.forEach((entry) => {
-                if (entry?.item) pending.push(entry.item);
-                else if (entry) pending.push(entry);
-            });
-        }
-
-        const seen = new Set();
-        return pending
-            .map(normalizePayload)
+    const fromGlobal =
+      global.OVERWORLD_TILES && typeof global.OVERWORLD_TILES === 'object'
+        ? Object.values(global.OVERWORLD_TILES)
+            .map((entry) => entry?.id)
             .filter(Boolean)
-            .filter((item) => {
-                const id = item.id || `${item.title || ''}-${item.lines?.[0] || ''}`;
-                if (seen.has(id)) return false;
-                seen.add(id);
-                return true;
-            });
-    }
+        : [];
 
-    /**
-     * Normalize faction state so persistence always stores a full schema.
-     * @param {object|null} factionState live faction state payload.
-     * @returns {{standings: object, recentContributors: object}} sanitized snapshot.
-     */
-    function normalizeFactionStateSnapshot(factionState) {
-        const base = buildDefaultFactionState();
-        if (!factionState || typeof factionState !== 'object') return base;
-        const standings = factionState.standings || {};
-        const contributors = factionState.recentContributors || {};
+    return new Set([...fallback, ...fromGlobal]);
+  }
+
+  /**
+   * Normalize potentially untrusted overworld tile data coming from persistence.
+   * Accepts an optional hexFactory so tests can supply a stub Hex implementation.
+   * @param {object} snapshot payload from storage.
+   * @param {object} [options]
+   * @param {function} [options.hexFactory] factory returning a Hex-like object with toString().
+   * @param {Array<string>} [options.allowedTileIds] optional whitelist for tile ids.
+   * @returns {object|null} hydrated game data or null when snapshot is missing.
+   */
+  function deserializeGameState(snapshot, options = {}) {
+    if (!snapshot) return null;
+    const allowedTileIds = getAllowedTileIds(options);
+    const allowedOwners = new Set([null, 'player', 'rebel', 'scorched', 'enemy', 'neutral']);
+    const migrationLog = options.migrationLog || null;
+    const makeHex =
+      options.hexFactory ||
+      ((q, r, s) => {
+        if (typeof global.Hex === 'function') return new global.Hex(q, r, s);
         return {
-            standings: {
-                crown: Number.isFinite(standings.crown) ? standings.crown : base.standings.crown,
-                reformers: Number.isFinite(standings.reformers) ? standings.reformers : base.standings.reformers,
-                guilds: Number.isFinite(standings.guilds) ? standings.guilds : base.standings.guilds,
-                masses: Number.isFinite(standings.masses) ? standings.masses : base.standings.masses,
-                frontier: Number.isFinite(standings.frontier) ? standings.frontier : base.standings.frontier
-            },
-            recentContributors: {
-                crown: Array.isArray(contributors.crown) ? [...contributors.crown] : base.recentContributors.crown,
-                reformers: Array.isArray(contributors.reformers) ? [...contributors.reformers] : base.recentContributors.reformers,
-                guilds: Array.isArray(contributors.guilds) ? [...contributors.guilds] : base.recentContributors.guilds,
-                masses: Array.isArray(contributors.masses) ? [...contributors.masses] : base.recentContributors.masses,
-                frontier: Array.isArray(contributors.frontier) ? [...contributors.frontier] : base.recentContributors.frontier
-            }
+          q,
+          r,
+          s,
+          toString() {
+            return `${this.q},${this.r}`;
+          },
         };
-    }
+      });
 
-    /**
-     * Normalize tutorial state so onboarding flags persist with safe defaults.
-     * @param {object|null} tutorial live tutorial state payload.
-     * @returns {object|null} sanitized tutorial snapshot or null when unavailable.
-     */
-    function normalizeTutorialSnapshot(tutorial) {
-        if (!tutorial || typeof tutorial !== 'object') return null;
-        const frontierSweep = tutorial.frontierSweep || {};
-        const targetTileKey = typeof frontierSweep.targetTileKey === 'string'
-            ? frontierSweep.targetTileKey
-            : null;
-        return {
-            ...tutorial,
-            frontierSweep: {
-                targetTileKey,
-                spreadImmune: frontierSweep.spreadImmune !== false,
-                source: typeof frontierSweep.source === 'string' ? frontierSweep.source : null,
-                enemyLevel: Number.isFinite(frontierSweep.enemyLevel) ? frontierSweep.enemyLevel : null,
-                issuedTick: Number.isFinite(frontierSweep.issuedTick) ? frontierSweep.issuedTick : null,
-                completionTick: Number.isFinite(frontierSweep.completionTick) ? frontierSweep.completionTick : null
-            }
-        };
-    }
+    const overworldHexes = new Map();
+    (snapshot.overworld?.hexes || []).forEach(({ q, r, s, type, owner, prevType, scorchedBy }) => {
+      if (!Number.isFinite(q) || !Number.isFinite(r) || !Number.isFinite(s)) return;
+      let normalizedType = typeof type === 'string' ? type.toLowerCase() : null;
+      if (normalizedType === 'rebel') {
+        normalizedType = 'rebelcamp';
+        recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.REBEL_TILE_TYPE);
+      }
+      if (!normalizedType || !allowedTileIds.has(normalizedType)) return;
 
-    /**
-     * Serialize the current game state into a JSON-friendly snapshot.
-     * Only serializes deterministic, overworld-friendly data (combat is excluded).
-     * @param {object} game reference to the main Game singleton.
-     * @param {object} [options]
-     * @param {function} [options.mandateSerializer] optional override for mandate serialization.
-     * @returns {object} snapshot that can be persisted.
-     */
-    function serializeGameState(game, options = {}) {
-        const rawStatsInput = game.stats || {};
-        const rawStats = normalizeStats(rawStatsInput);
-        const progressAlignment = reconcileDifficultyAndWarsWon(
-            { difficulty: game.difficulty },
-            rawStats,
-            { statsSource: rawStatsInput }
-        );
-        const overwriteStats = progressAlignment.stats || rawStats;
-        const alignedDifficulty = Number.isFinite(progressAlignment.warsWon)
-            ? progressAlignment.warsWon
-            : Math.max(0, Number.isFinite(game.difficulty) ? game.difficulty : 0);
-        const timekeeper = normalizeTimekeeperSnapshot(game.timekeeper);
-        const mandateSerializer = options.mandateSerializer
-            || game.imperialMandates?.serializeState
-            || global.ImperialMandates?.serializeState;
-        const mandates = typeof mandateSerializer === 'function'
-            ? mandateSerializer.call(game.imperialMandates || global.ImperialMandates)
-            : undefined;
-        const narrative = typeof game?.narrative?.serializeState === 'function'
-            ? game.narrative.serializeState()
-            : null;
-        return {
-            gold: game.gold,
-            wood: game.wood,
-            difficulty: alignedDifficulty,
-            upgrades: { ...game.upgrades },
-            ultimates: { ...(game.ultimates || {}) },
-            selectedUltimate: game.selectedUltimate,
-            research: {
-                technologies: Array.from(game.research?.technologies || []).map(t => ({
-                    id: t.id,
-                    purchased: Boolean(t.purchased),
-                    timesPurchased: t.timesPurchased || 0,
-                    optionPurchaseCounts: t.optionPurchaseCounts
-                        ? { ...t.optionPurchaseCounts }
-                        : undefined
-                })),
-                lives: game.research?.lives || 0
-            },
-            imperialFavor: clampImperialFavor(game.imperialFavor),
-            timekeeper,
-            overworld: {
-                hexes: Array.from(game.overworld.hexes.values()).map((tile) => {
-                    const { hex, type, owner, prevType, scorchedBy } = tile;
-                    const payload = {
-                        q: hex.q,
-                        r: hex.r,
-                        s: hex.s,
-                        type,
-                        owner: owner ?? null
-                    };
-                    if (typeof prevType === 'string') payload.prevType = prevType;
-                    if (typeof scorchedBy === 'string') payload.scorchedBy = scorchedBy;
-                    return payload;
-                })
-            },
-            stats: overwriteStats,
-            notifications: snapshotNotifications(game),
-            factionState: normalizeFactionStateSnapshot(game.factionState),
-            tutorial: normalizeTutorialSnapshot(game.tutorial),
-            mandates,
-            narrative
-        };
-    }
+      let normalizedOwner = null;
+      if (owner !== undefined && owner !== null) {
+        const lowerOwner = typeof owner === 'string' ? owner.toLowerCase() : null;
+        normalizedOwner = allowedOwners.has(lowerOwner) ? lowerOwner : null;
+      }
 
-    /**
-     * Build a set of allowed overworld tile ids by pulling from live config when available
-     * and falling back to the default tiles used across the prototype. This guards against
-     * malformed save payloads injecting unexpected tile types during deserialization.
-     * @param {object} [options]
-     * @param {Array<string>} [options.allowedTileIds] optional override to tighten allowed ids.
-     * @returns {Set<string>} all recognized overworld tile identifiers.
-     */
-    function getAllowedTileIds(options = {}) {
-        if (Array.isArray(options.allowedTileIds)) {
-            return new Set(options.allowedTileIds.map(id => String(id).toLowerCase()));
-        }
-        const fallback = [
-            'castle',
-            'field',
-            'forest',
-            'town',
-            'scorched',
-            'rebelcamp',
-            'mine',
-            'shrine',
-            'ruin'
-        ];
+      const hex = makeHex(q, r, s);
+      if (normalizedType === 'rebelcamp' && !normalizedOwner) {
+        normalizedOwner = 'rebel';
+      }
+      let normalizedPrevType = typeof prevType === 'string' ? prevType.toLowerCase() : null;
+      if (normalizedPrevType && !allowedTileIds.has(normalizedPrevType)) {
+        normalizedPrevType = null;
+      }
+      const payload = {
+        hex,
+        type: normalizedType,
+        owner: normalizedOwner,
+        isRebelCamp: normalizedType === 'rebelcamp',
+      };
+      if (normalizedPrevType) payload.prevType = normalizedPrevType;
+      if (typeof scorchedBy === 'string' && scorchedBy) payload.scorchedBy = scorchedBy;
+      overworldHexes.set(hex.toString(), payload);
+    });
 
-        const fromGlobal = global.OVERWORLD_TILES && typeof global.OVERWORLD_TILES === 'object'
-            ? Object.values(global.OVERWORLD_TILES)
-                .map(entry => entry?.id)
-                .filter(Boolean)
-            : [];
+    const narrative =
+      snapshot.narrative && typeof snapshot.narrative === 'object' ? snapshot.narrative : null;
 
-        return new Set([...fallback, ...fromGlobal]);
-    }
-
-    /**
-     * Normalize potentially untrusted overworld tile data coming from persistence.
-     * Accepts an optional hexFactory so tests can supply a stub Hex implementation.
-     * @param {object} snapshot payload from storage.
-     * @param {object} [options]
-     * @param {function} [options.hexFactory] factory returning a Hex-like object with toString().
-     * @param {Array<string>} [options.allowedTileIds] optional whitelist for tile ids.
-     * @returns {object|null} hydrated game data or null when snapshot is missing.
-     */
-    function deserializeGameState(snapshot, options = {}) {
-        if (!snapshot) return null;
-        const allowedTileIds = getAllowedTileIds(options);
-        const allowedOwners = new Set([null, 'player', 'rebel', 'scorched', 'enemy', 'neutral']);
-        const migrationLog = options.migrationLog || null;
-        const makeHex =
-            options.hexFactory ||
-            ((q, r, s) => {
-                if (typeof global.Hex === 'function') return new global.Hex(q, r, s);
-                return {
-                    q,
-                    r,
-                    s,
-                    toString() {
-                        return `${this.q},${this.r}`;
-                    }
-                };
-            });
-
-        const overworldHexes = new Map();
-        (snapshot.overworld?.hexes || []).forEach(({ q, r, s, type, owner, prevType, scorchedBy }) => {
-            if (!Number.isFinite(q) || !Number.isFinite(r) || !Number.isFinite(s)) return;
-            let normalizedType = typeof type === 'string' ? type.toLowerCase() : null;
-            if (normalizedType === 'rebel') {
-                normalizedType = 'rebelcamp';
-                recordLegacyMigration(migrationLog, LEGACY_MIGRATIONS.REBEL_TILE_TYPE);
-            }
-            if (!normalizedType || !allowedTileIds.has(normalizedType)) return;
-
-            let normalizedOwner = null;
-            if (owner !== undefined && owner !== null) {
-                const lowerOwner = typeof owner === 'string' ? owner.toLowerCase() : null;
-                normalizedOwner = allowedOwners.has(lowerOwner) ? lowerOwner : null;
-            }
-
-            const hex = makeHex(q, r, s);
-            if (normalizedType === 'rebelcamp' && !normalizedOwner) {
-                normalizedOwner = 'rebel';
-            }
-            let normalizedPrevType = typeof prevType === 'string' ? prevType.toLowerCase() : null;
-            if (normalizedPrevType && !allowedTileIds.has(normalizedPrevType)) {
-                normalizedPrevType = null;
-            }
-            const payload = {
-                hex,
-                type: normalizedType,
-                owner: normalizedOwner,
-                isRebelCamp: normalizedType === 'rebelcamp'
-            };
-            if (normalizedPrevType) payload.prevType = normalizedPrevType;
-            if (typeof scorchedBy === 'string' && scorchedBy) payload.scorchedBy = scorchedBy;
-            overworldHexes.set(hex.toString(), payload);
-        });
-
-        const narrative = snapshot.narrative && typeof snapshot.narrative === 'object'
-            ? snapshot.narrative
-            : null;
-
-        return {
-            gold: snapshot.gold ?? 0,
-            wood: snapshot.wood ?? 0,
-            difficulty: snapshot.difficulty ?? 0,
-            imperialFavor: clampImperialFavor(snapshot.imperialFavor),
-            timekeeper: normalizeTimekeeperSnapshot(snapshot.timekeeper),
-            upgrades: snapshot.upgrades || {},
-            ultimates: snapshot.ultimates || {},
-            research: snapshot.research || {},
-            overworld: { hexes: overworldHexes },
-            stats: normalizeStats(snapshot.stats, { migrationLog }),
-            notifications: Array.isArray(snapshot.notifications) ? snapshot.notifications : [],
-            factionState: normalizeFactionStateSnapshot(snapshot.factionState),
-            tutorial: normalizeTutorialSnapshot(snapshot.tutorial),
-            mandates: snapshot.mandates || null,
-            narrative
-        };
-    }
-
-    /**
-     * Save the game snapshot + leaderboard stats to a specific save slot.
-     * Storage writes are wrapped so quota/unavailable adapters never crash the game loop.
-     * @param {object} game current Game instance.
-     * @param {string|number} [slot='1'] slot number to persist into.
-     * @returns {{savedAt: string, payload: object, slot: string, success: boolean, error?: string}} time, payload, and status details.
-     */
-    function saveSnapshot(game, slot = '1') {
-        const payload = serializeGameState(game);
-        const savedAt = new Date().toISOString();
-        const slotKey = storageKeyForSlot(slot);
-        const statKey = statsKeyForSlot(slot);
-        payload.stats.lastSaveISO = savedAt;
-        if (!storageAdapter) {
-            console.warn('Save skipped: storage unavailable.');
-            return {
-                savedAt,
-                payload,
-                slot: String(slot),
-                success: false,
-                error: 'unavailable'
-            };
-        }
-
-        try {
-            storageAdapter.setItem(slotKey, JSON.stringify(payload));
-            storageAdapter.setItem(statKey, JSON.stringify(payload.stats));
-            return { savedAt, payload, slot: String(slot), success: true };
-        } catch (error) {
-            const isQuotaExceeded = error?.name === 'QuotaExceededError' || error?.code === 22;
-            const errorCode = isQuotaExceeded ? 'quota-exceeded' : 'write-failed';
-            console.warn('Failed to persist snapshot', error);
-            return {
-                savedAt,
-                payload,
-                slot: String(slot),
-                success: false,
-                error: errorCode
-            };
-        }
-    }
-
-    /**
-     * Load the saved snapshot for a specific slot, if present.
-     * @param {string|number|object} [slotOrOptions] slot identifier or options object.
-     * @param {object} [options] passthrough options for deserialization when slot is provided first.
-     * @returns {{state: object|null, stats: object, slot: string, migrations: Array<string>}}
-     * hydrated state + stats and legacy migration notes.
-     */
-    function loadSnapshot(slotOrOptions = {}, options = {}) {
-        const { slot, options: normalizedOptions } = normalizeSlotAndOptions(slotOrOptions, options);
-        const rawState = readFromStorage(storageKeyForSlot(slot));
-        const rawStats = readFromStorage(statsKeyForSlot(slot));
-        const rawStatsSource = rawStats || rawState?.stats || null;
-        const migrationLog = Array.isArray(normalizedOptions.migrationLog)
-            ? normalizedOptions.migrationLog
-            : [];
-        const stats = normalizeStats(rawStatsSource, { migrationLog });
-        const state = deserializeGameState(rawState, { ...normalizedOptions, migrationLog });
-        const reconciled = reconcileDifficultyAndWarsWon(state, stats, {
-            statsSource: rawStatsSource,
-            migrationLog
-        });
-        return {
-            state: reconciled.state,
-            stats: reconciled.stats,
-            slot,
-            migrations: migrationLog
-        };
-    }
-
-    /**
-     * Remove all stored progress and leaderboard data for a slot, or every slot when none is provided.
-     * @param {string|number} [slot] optional slot to target; clears every slot when omitted.
-     */
-    function clearSnapshot(slot) {
-        if (!storageAdapter) return;
-        if (slot) {
-            storageAdapter.removeItem(storageKeyForSlot(slot));
-            storageAdapter.removeItem(statsKeyForSlot(slot));
-            return;
-        }
-        storageAdapter.keys()
-            .filter(key => key.startsWith(STORAGE_PREFIX) || key.startsWith(STATS_PREFIX))
-            .forEach(key => storageAdapter.removeItem(key));
-    }
-
-    /**
-     * Check if storage currently holds a save file in the desired slot.
-     * @param {string|number} [slot='1'] slot identifier.
-     * @returns {boolean} true when a save payload exists.
-     */
-    function hasSnapshot(slot = '1') {
-        if (!storageAdapter) return false;
-        return Boolean(storageAdapter.getItem(storageKeyForSlot(slot)));
-    }
-
-    /**
-     * Inspect a slot without deserializing the entire payload.
-     * @param {string|number} slot slot identifier.
-     * @returns {{slot: string, hasSave: boolean, lastSaveISO: string|null, level: number|null}} snapshot metadata.
-     */
-    function getSlotMetadata(slot) {
-        const state = readFromStorage(storageKeyForSlot(slot));
-        if (!state) return { slot: String(slot), hasSave: false, lastSaveISO: null, level: null };
-        const level = typeof state.difficulty === 'number' ? state.difficulty : null;
-        const lastSaveISO = state.stats?.lastSaveISO || null;
-        return { slot: String(slot), hasSave: true, lastSaveISO, level };
-    }
-
-    /** Pure snapshot helpers with no storage side effects for tests and remote adapters. */
-    const SnapshotSerializer = {
-        serialize: serializeGameState,
-        deserialize: deserializeGameState
+    return {
+      gold: snapshot.gold ?? 0,
+      wood: snapshot.wood ?? 0,
+      difficulty: snapshot.difficulty ?? 0,
+      imperialFavor: clampImperialFavor(snapshot.imperialFavor),
+      timekeeper: normalizeTimekeeperSnapshot(snapshot.timekeeper),
+      upgrades: snapshot.upgrades || {},
+      ultimates: snapshot.ultimates || {},
+      research: snapshot.research || {},
+      overworld: { hexes: overworldHexes },
+      stats: normalizeStats(snapshot.stats, { migrationLog }),
+      notifications: Array.isArray(snapshot.notifications) ? snapshot.notifications : [],
+      factionState: normalizeFactionStateSnapshot(snapshot.factionState),
+      tutorial: normalizeTutorialSnapshot(snapshot.tutorial),
+      mandates: snapshot.mandates || null,
+      narrative,
     };
+  }
 
-    /** Expose stat normalization and clamping helpers separately for reuse. */
-    const StatHelpers = {
-        normalizeStats,
-        clampImperialFavor,
-        normalizeTimekeeperSnapshot,
-        reconcileDifficultyAndWarsWon
-    };
+  /**
+   * Save the game snapshot + leaderboard stats to a specific save slot.
+   * Storage writes are wrapped so quota/unavailable adapters never crash the game loop.
+   * @param {object} game current Game instance.
+   * @param {string|number} [slot='1'] slot number to persist into.
+   * @returns {{savedAt: string, payload: object, slot: string, success: boolean, error?: string}} time, payload, and status details.
+   */
+  function saveSnapshot(game, slot = '1') {
+    const payload = serializeGameState(game);
+    const savedAt = new Date().toISOString();
+    const slotKey = storageKeyForSlot(slot);
+    const statKey = statsKeyForSlot(slot);
+    payload.stats.lastSaveISO = savedAt;
+    if (!storageAdapter) {
+      console.warn('Save skipped: storage unavailable.');
+      return {
+        savedAt,
+        payload,
+        slot: String(slot),
+        success: false,
+        error: 'unavailable',
+      };
+    }
 
-    const api = {
-        STORAGE_KEY,
-        STORAGE_PREFIX,
-        STATS_KEY,
-        STATS_PREFIX,
-        DEFAULT_IMPERIAL_FAVOR,
-        DEFAULT_STATS,
-        serializeGameState,
-        deserializeGameState,
-        saveSnapshot,
-        loadSnapshot,
-        clearSnapshot,
-        hasSnapshot,
-        getSlotMetadata,
-        storageKeyForSlot,
-        statsKeyForSlot,
-        createStorageAdapter,
-        setStorageAdapter,
-        getStorageAdapter,
-        SnapshotSerializer,
-        StatHelpers
+    try {
+      storageAdapter.setItem(slotKey, JSON.stringify(payload));
+      storageAdapter.setItem(statKey, JSON.stringify(payload.stats));
+      return { savedAt, payload, slot: String(slot), success: true };
+    } catch (error) {
+      const isQuotaExceeded = error?.name === 'QuotaExceededError' || error?.code === 22;
+      const errorCode = isQuotaExceeded ? 'quota-exceeded' : 'write-failed';
+      console.warn('Failed to persist snapshot', error);
+      return {
+        savedAt,
+        payload,
+        slot: String(slot),
+        success: false,
+        error: errorCode,
+      };
+    }
+  }
+
+  /**
+   * Load the saved snapshot for a specific slot, if present.
+   * @param {string|number|object} [slotOrOptions] slot identifier or options object.
+   * @param {object} [options] passthrough options for deserialization when slot is provided first.
+   * @returns {{state: object|null, stats: object, slot: string, migrations: Array<string>}}
+   * hydrated state + stats and legacy migration notes.
+   */
+  function loadSnapshot(slotOrOptions = {}, options = {}) {
+    const { slot, options: normalizedOptions } = normalizeSlotAndOptions(slotOrOptions, options);
+    const rawState = readFromStorage(storageKeyForSlot(slot));
+    const rawStats = readFromStorage(statsKeyForSlot(slot));
+    const rawStatsSource = rawStats || rawState?.stats || null;
+    const migrationLog = Array.isArray(normalizedOptions.migrationLog)
+      ? normalizedOptions.migrationLog
+      : [];
+    const stats = normalizeStats(rawStatsSource, { migrationLog });
+    const state = deserializeGameState(rawState, { ...normalizedOptions, migrationLog });
+    const reconciled = reconcileDifficultyAndWarsWon(state, stats, {
+      statsSource: rawStatsSource,
+      migrationLog,
+    });
+    return {
+      state: reconciled.state,
+      stats: reconciled.stats,
+      slot,
+      migrations: migrationLog,
     };
-    return api;
+  }
+
+  /**
+   * Remove all stored progress and leaderboard data for a slot, or every slot when none is provided.
+   * @param {string|number} [slot] optional slot to target; clears every slot when omitted.
+   */
+  function clearSnapshot(slot) {
+    if (!storageAdapter) return;
+    if (slot) {
+      storageAdapter.removeItem(storageKeyForSlot(slot));
+      storageAdapter.removeItem(statsKeyForSlot(slot));
+      return;
+    }
+    storageAdapter
+      .keys()
+      .filter((key) => key.startsWith(STORAGE_PREFIX) || key.startsWith(STATS_PREFIX))
+      .forEach((key) => storageAdapter.removeItem(key));
+  }
+
+  /**
+   * Check if storage currently holds a save file in the desired slot.
+   * @param {string|number} [slot='1'] slot identifier.
+   * @returns {boolean} true when a save payload exists.
+   */
+  function hasSnapshot(slot = '1') {
+    if (!storageAdapter) return false;
+    return Boolean(storageAdapter.getItem(storageKeyForSlot(slot)));
+  }
+
+  /**
+   * Inspect a slot without deserializing the entire payload.
+   * @param {string|number} slot slot identifier.
+   * @returns {{slot: string, hasSave: boolean, lastSaveISO: string|null, level: number|null}} snapshot metadata.
+   */
+  function getSlotMetadata(slot) {
+    const state = readFromStorage(storageKeyForSlot(slot));
+    if (!state) return { slot: String(slot), hasSave: false, lastSaveISO: null, level: null };
+    const level = typeof state.difficulty === 'number' ? state.difficulty : null;
+    const lastSaveISO = state.stats?.lastSaveISO || null;
+    return { slot: String(slot), hasSave: true, lastSaveISO, level };
+  }
+
+  /** Pure snapshot helpers with no storage side effects for tests and remote adapters. */
+  const SnapshotSerializer = {
+    serialize: serializeGameState,
+    deserialize: deserializeGameState,
+  };
+
+  /** Expose stat normalization and clamping helpers separately for reuse. */
+  const StatHelpers = {
+    normalizeStats,
+    clampImperialFavor,
+    normalizeTimekeeperSnapshot,
+    reconcileDifficultyAndWarsWon,
+  };
+
+  const api = {
+    STORAGE_KEY,
+    STORAGE_PREFIX,
+    STATS_KEY,
+    STATS_PREFIX,
+    DEFAULT_IMPERIAL_FAVOR,
+    DEFAULT_STATS,
+    serializeGameState,
+    deserializeGameState,
+    saveSnapshot,
+    loadSnapshot,
+    clearSnapshot,
+    hasSnapshot,
+    getSlotMetadata,
+    storageKeyForSlot,
+    statsKeyForSlot,
+    createStorageAdapter,
+    setStorageAdapter,
+    getStorageAdapter,
+    SnapshotSerializer,
+    StatHelpers,
+  };
+  return api;
 }
 
 const Persistence = createPersistence(typeof window !== 'undefined' ? window : globalThis);
@@ -733,10 +766,10 @@ const Persistence = createPersistence(typeof window !== 'undefined' ? window : g
  * @returns {Object} Persistence helper API.
  */
 function initPersistence(target = typeof window !== 'undefined' ? window : globalThis) {
-    if (target) {
-        target.Persistence = Persistence;
-    }
-    return Persistence;
+  if (target) {
+    target.Persistence = Persistence;
+  }
+  return Persistence;
 }
 
 Persistence.initPersistence = initPersistence;
